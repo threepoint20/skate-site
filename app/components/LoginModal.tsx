@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { getAdminUsername } from '../lib/auth';
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -114,10 +115,12 @@ export default function LoginModal({ isOpen, onClose, onLogin }: LoginModalProps
           </div>
         </form>
 
-        <div className="mt-4 p-3 bg-gray-50 rounded text-sm text-gray-600">
-          <p className="font-medium mb-1">測試帳號：</p>
-          <p>帳號：admin</p>
-          <p>密碼：admin123</p>
+        <div className="mt-4 p-3 bg-blue-50 rounded text-sm text-blue-700">
+          <p className="font-medium mb-1">💡 管理員資訊：</p>
+          <p>請聯絡系統管理員獲取登入帳號密碼</p>
+          <p className="text-xs mt-1 text-blue-600">
+            預設帳號：{getAdminUsername()}
+          </p>
         </div>
       </div>
     </div>

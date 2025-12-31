@@ -9,11 +9,13 @@ export interface User {
   loginTime?: string;
 }
 
-// 預設管理員帳號 (實際應用中應該使用更安全的方式)
-const DEFAULT_ADMIN = {
-  username: 'admin',
-  password: 'admin123', // 實際應用中應該使用加密密碼
-  role: 'administrator' as UserRole
+// 從環境變數或預設值獲取管理員帳號資訊
+const getAdminCredentials = () => {
+  return {
+    username: process.env.NEXT_PUBLIC_ADMIN_USERNAME || 'admin',
+    password: process.env.ADMIN_PASSWORD || 'skate2024!', // 更安全的預設密碼
+    role: 'administrator' as UserRole
+  };
 };
 
 // 檢查是否為管理員
@@ -59,12 +61,14 @@ export function setCurrentUser(user: User | null): void {
 
 // 登入驗證
 export function authenticateUser(username: string, password: string): User | null {
+  const adminCredentials = getAdminCredentials();
+  
   // 檢查管理員帳號
-  if (username === DEFAULT_ADMIN.username && password === DEFAULT_ADMIN.password) {
+  if (username === adminCredentials.username && password === adminCredentials.password) {
     const user: User = {
       id: 'admin-001',
-      username: DEFAULT_ADMIN.username,
-      role: DEFAULT_ADMIN.role,
+      username: adminCredentials.username,
+      role: adminCredentials.role,
       loginTime: new Date().toISOString()
     };
     
@@ -113,6 +117,11 @@ export function hasPermission(user: User | null, action: string): boolean {
     default:
       return false;
   }
+}
+
+// 獲取管理員用戶名 (用於顯示)
+export function getAdminUsername(): string {
+  return getAdminCredentials().username;
 }
 
 // 權限中間件 Hook
