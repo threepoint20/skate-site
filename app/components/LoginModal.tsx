@@ -118,9 +118,6 @@ export default function LoginModal({ isOpen, onClose, onLogin }: LoginModalProps
         <div className="mt-4 p-3 bg-blue-50 rounded text-sm text-blue-700">
           <p className="font-medium mb-1">💡 管理員資訊：</p>
           <p>請聯絡系統管理員獲取登入帳號密碼</p>
-          <p className="text-xs mt-1 text-blue-600">
-            預設帳號：{getAdminUsername()}
-          </p>
         </div>
       </div>
     </div>
