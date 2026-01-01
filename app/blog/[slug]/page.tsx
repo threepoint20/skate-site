@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getPostBySlug, updatePost, getAllPosts, incrementViews, BlogPost } from '../../lib/blogData';
 import { useAuth } from '../../lib/auth';
+import ImageUpload from '../../components/ImageUpload';
 
 interface BlogPostPageProps {
   // Next.js 15 中 params 是 Promise
@@ -22,6 +23,7 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedContent, setEditedContent] = useState('');
   const [editedTitle, setEditedTitle] = useState('');
+  const [editedCoverImage, setEditedCoverImage] = useState('');
   const [loading, setLoading] = useState(true);
   const { hasPermission } = useAuth();
   const [relatedPosts, setRelatedPosts] = useState<BlogPost[]>([]);
@@ -34,6 +36,7 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
         setPost(foundPost);
         setEditedContent(foundPost.content);
         setEditedTitle(foundPost.title);
+        setEditedCoverImage(foundPost.coverImage || '');
         
         // 增加瀏覽數
         await incrementViews(slug);
@@ -65,14 +68,16 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
     try {
       const success = await updatePost(post.slug, {
         title: editedTitle,
-        content: editedContent
+        content: editedContent,
+        coverImage: editedCoverImage
       });
       
       if (success) {
         setPost({
           ...post,
           title: editedTitle,
-          content: editedContent
+          content: editedContent,
+          coverImage: editedCoverImage
         });
         setIsEditing(false);
         alert('文章已儲存！');
@@ -89,6 +94,7 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
     if (post) {
       setEditedTitle(post.title);
       setEditedContent(post.content);
+      setEditedCoverImage(post.coverImage || '');
     }
     setIsEditing(false);
   };
@@ -185,14 +191,30 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
       </section>
 
       {/* Cover Image */}
-      {post.coverImage && (
+      {(post.coverImage || isEditing) && (
         <section className="px-6">
           <div className="max-w-4xl mx-auto">
-            <img
-              src={post.coverImage}
-              alt={post.title}
-              className="w-full max-h-96 object-cover rounded-lg shadow-lg"
-            />
+            {isEditing ? (
+              <div className="mb-6">
+                <ImageUpload
+                  currentImage={editedCoverImage}
+                  onImageUploaded={(imageUrl) => {
+                    setEditedCoverImage(imageUrl);
+                  }}
+                  onImageRemoved={() => {
+                    setEditedCoverImage('');
+                  }}
+                />
+              </div>
+            ) : (
+              post.coverImage && (
+                <img
+                  src={post.coverImage}
+                  alt={post.title}
+                  className="w-full max-h-96 object-cover rounded-lg shadow-lg"
+                />
+              )
+            )}
           </div>
         </section>
       )}
