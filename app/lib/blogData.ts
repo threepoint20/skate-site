@@ -103,24 +103,26 @@ export async function getPostBySlug(slug: string): Promise<BlogPost | null> {
 // 新增文章
 export async function addPost(postData: Omit<BlogPost, 'id' | 'slug' | 'views'>): Promise<BlogPost | null> {
   try {
-    const posts = await getAllPosts();
-    
-    const newPost: BlogPost = {
+    const newPostData = {
       ...postData,
-      id: generateId(),
       slug: generateSlug(postData.title),
       views: 0,
       coverImage: postData.coverImage || '/images/blog/default-cover.png'
     };
     
-    posts.unshift(newPost);
-    const success = await savePosts(posts);
+    const response = await fetch('/api/blog', {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+      body: JSON.stringify(newPostData),
+    });
     
-    if (!success) {
-      throw new Error('無法儲存文章資料');
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || '新增文章失敗');
     }
     
-    return newPost;
+    return await response.json();
   } catch (error: any) {
     console.error('Error adding post:', error);
     throw new Error(error.message || '新增文章失敗');

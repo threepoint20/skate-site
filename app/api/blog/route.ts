@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyRequestAuth, getSecurityHeaders, checkRateLimit, getClientIP, validateInput } from '@/app/lib/security';
-import { getAllPostsFromDB, savePostsToDB } from '@/app/lib/database';
+import { getAllPostsFromDB, addPostToDB } from '@/app/lib/database';
 
 // 讀取所有文章
 export async function GET(request: NextRequest) {
@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// 儲存所有文章 (需要管理員權限)
+// 新增單篇文章 (需要管理員權限)
 export async function POST(request: NextRequest) {
   try {
     // Rate limiting
@@ -46,39 +46,37 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const posts = await request.json();
+    const postData = await request.json();
     
-    // 驗證資料格式
-    if (!Array.isArray(posts)) {
+    // 檢查是否為批量儲存（向後相容）
+    if (Array.isArray(postData)) {
       return NextResponse.json(
-        { error: 'Invalid data format' },
+        { error: '請使用個別文章新增 API' },
         { status: 400, headers: getSecurityHeaders() }
       );
     }
-
-    // 驗證每篇文章的內容
-    for (const post of posts) {
-      if (!validateInput(post.title, 200) || !validateInput(post.content, 50000)) {
-        return NextResponse.json(
-          { error: '文章內容包含無效字符或過長' },
-          { status: 400, headers: getSecurityHeaders() }
-        );
-      }
+    
+    // 驗證文章內容
+    if (!validateInput(postData.title, 200) || !validateInput(postData.content, 50000)) {
+      return NextResponse.json(
+        { error: '文章內容包含無效字符或過長' },
+        { status: 400, headers: getSecurityHeaders() }
+      );
     }
     
-    const success = await savePostsToDB(posts);
-    if (success) {
-      return NextResponse.json({ success: true }, { headers: getSecurityHeaders() });
+    const newPost = await addPostToDB(postData);
+    if (newPost) {
+      return NextResponse.json(newPost, { headers: getSecurityHeaders() });
     } else {
       return NextResponse.json(
-        { error: '儲存文章失敗' },
+        { error: '新增文章失敗' },
         { status: 500, headers: getSecurityHeaders() }
       );
     }
   } catch (error) {
-    console.error('Error saving blog posts:', error);
+    console.error('Error adding blog post:', error);
     return NextResponse.json(
-      { error: 'Failed to save blog posts' },
+      { error: 'Failed to add blog post' },
       { status: 500, headers: getSecurityHeaders() }
     );
   }

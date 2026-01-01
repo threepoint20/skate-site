@@ -6,12 +6,20 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:studio": "drizzle-kit studio",
+    "setup:neon": "node scripts/setup-neon.js",
+    "migrate:neon": "node scripts/migrate-to-neon.js"
   },
   "dependencies": {
+    "@neondatabase/serverless": "^1.0.2",
     "@vercel/kv": "^3.0.0",
     "bcryptjs": "^3.0.3",
     "dotenv": "^17.2.3",
+    "drizzle-kit": "^0.31.8",
+    "drizzle-orm": "^0.45.1",
     "jsonwebtoken": "^9.0.3",
     "next": "16.1.1",
     "react": "19.2.3",

@@ -1,4 +1,4 @@
-// 資料庫適配器 - 支援本地檔案系統和 Vercel KV
+// 資料庫適配器 - 支援本地檔案系統、Vercel KV 和 Neon PostgreSQL
 import { BlogPost } from './blogData';
 import fs from 'fs';
 import path from 'path';
@@ -8,21 +8,54 @@ const isProduction = process.env.NODE_ENV === 'production';
 
 // 本地檔案路徑
 const DATA_FILE = path.join(process.cwd(), 'data', 'blog-posts.json');
+
+// 資料庫類型檢測
+const getDatabaseType = () => {
+  if (process.env.DATABASE_URL) return 'neon';
+  if (isProduction && process.env.KV_REST_API_URL) return 'kv';
+  return 'file';
+};
+
+// Neon 資料庫客戶端
+let neonDb: any = null;
+let blogPostsTable: any = null;
+
+// Vercel KV 客戶端
+let kv: any = null;
 const KV_KEY = 'blog-posts';
 
-// Vercel KV 客戶端（僅在生產環境載入）
-let kv: any = null;
-if (isProduction) {
-  try {
-    kv = require('@vercel/kv').kv;
-  } catch (error) {
-    console.warn('Vercel KV not available, falling back to file system');
+// 初始化資料庫連接
+async function initDatabase() {
+  const dbType = getDatabaseType();
+  
+  if (dbType === 'neon' && !neonDb) {
+    try {
+      const { neon } = await import('@neondatabase/serverless');
+      const { drizzle } = await import('drizzle-orm/neon-http');
+      const { blogPosts } = await import('./schema');
+      
+      const sql = neon(process.env.DATABASE_URL!);
+      neonDb = drizzle(sql);
+      blogPostsTable = blogPosts;
+      
+      console.log('✅ Neon database connected');
+    } catch (error) {
+      console.error('❌ Failed to connect to Neon:', error);
+      throw error;
+    }
+  } else if (dbType === 'kv' && !kv) {
+    try {
+      kv = (await import('@vercel/kv')).kv;
+      console.log('✅ Vercel KV connected');
+    } catch (error) {
+      console.warn('⚠️ Vercel KV not available, falling back to file system');
+    }
   }
 }
 
 // 確保本地資料目錄存在
 function ensureDataDirectory() {
-  if (!isProduction) {
+  if (getDatabaseType() === 'file') {
     const dataDir = path.dirname(DATA_FILE);
     if (!fs.existsSync(dataDir)) {
       fs.mkdirSync(dataDir, { recursive: true });
@@ -30,15 +63,60 @@ function ensureDataDirectory() {
   }
 }
 
+// 轉換 Neon 資料到 BlogPost 格式
+function convertNeonToBlogPost(neonPost: any): BlogPost {
+  return {
+    id: neonPost.id,
+    slug: neonPost.slug,
+    title: neonPost.title,
+    content: neonPost.content,
+    excerpt: neonPost.excerpt,
+    date: neonPost.date,
+    category: neonPost.category,
+    readTime: neonPost.readTime,
+    author: neonPost.author,
+    tags: neonPost.tags || [],
+    status: neonPost.status as '已發布' | '草稿',
+    views: neonPost.views || 0,
+    coverImage: neonPost.coverImage,
+  };
+}
+
+// 轉換 BlogPost 到 Neon 格式
+function convertBlogPostToNeon(post: BlogPost): any {
+  return {
+    slug: post.slug,
+    title: post.title,
+    content: post.content,
+    excerpt: post.excerpt,
+    date: post.date,
+    category: post.category,
+    readTime: post.readTime,
+    author: post.author,
+    tags: post.tags,
+    status: post.status,
+    views: post.views,
+    coverImage: post.coverImage,
+  };
+}
+
 // 讀取所有文章
 export async function getAllPostsFromDB(): Promise<BlogPost[]> {
   try {
-    if (isProduction && kv) {
-      // 生產環境：使用 Vercel KV
+    const dbType = getDatabaseType();
+    
+    if (dbType === 'neon') {
+      await initDatabase();
+      const { desc } = await import('drizzle-orm');
+      
+      const posts = await neonDb.select().from(blogPostsTable).orderBy(desc(blogPostsTable.id));
+      return posts.map(convertNeonToBlogPost);
+    } else if (dbType === 'kv') {
+      await initDatabase();
       const posts = await kv.get(KV_KEY);
       return posts || [];
     } else {
-      // 開發環境：使用本地檔案
+      // 檔案系統
       ensureDataDirectory();
       
       if (!fs.existsSync(DATA_FILE)) {
@@ -57,12 +135,19 @@ export async function getAllPostsFromDB(): Promise<BlogPost[]> {
 // 儲存所有文章
 export async function savePostsToDB(posts: BlogPost[]): Promise<boolean> {
   try {
-    if (isProduction && kv) {
-      // 生產環境：使用 Vercel KV
+    const dbType = getDatabaseType();
+    
+    if (dbType === 'neon') {
+      // Neon 不支援批量替換，需要個別處理
+      // 這個函數主要用於從檔案系統遷移，生產環境建議使用個別的 CRUD 操作
+      console.warn('Neon database: Use individual CRUD operations instead of bulk save');
+      return true;
+    } else if (dbType === 'kv') {
+      await initDatabase();
       await kv.set(KV_KEY, posts);
       return true;
     } else {
-      // 開發環境：使用本地檔案
+      // 檔案系統
       ensureDataDirectory();
       fs.writeFileSync(DATA_FILE, JSON.stringify(posts, null, 2), 'utf8');
       return true;
@@ -76,10 +161,46 @@ export async function savePostsToDB(posts: BlogPost[]): Promise<boolean> {
 // 根據 slug 獲取單篇文章
 export async function getPostBySlugFromDB(slug: string): Promise<BlogPost | null> {
   try {
-    const posts = await getAllPostsFromDB();
-    return posts.find(post => post.slug === slug) || null;
+    const dbType = getDatabaseType();
+    
+    if (dbType === 'neon') {
+      await initDatabase();
+      const { eq } = await import('drizzle-orm');
+      
+      const posts = await neonDb.select().from(blogPostsTable).where(eq(blogPostsTable.slug, slug));
+      return posts.length > 0 ? convertNeonToBlogPost(posts[0]) : null;
+    } else {
+      const posts = await getAllPostsFromDB();
+      return posts.find(post => post.slug === slug) || null;
+    }
   } catch (error) {
     console.error('Error getting post by slug:', error);
+    return null;
+  }
+}
+
+// 新增文章
+export async function addPostToDB(post: Omit<BlogPost, 'id'>): Promise<BlogPost | null> {
+  try {
+    const dbType = getDatabaseType();
+    
+    if (dbType === 'neon') {
+      await initDatabase();
+      
+      const newPostData = convertBlogPostToNeon(post as BlogPost);
+      const insertedPosts = await neonDb.insert(blogPostsTable).values(newPostData).returning();
+      
+      return insertedPosts.length > 0 ? convertNeonToBlogPost(insertedPosts[0]) : null;
+    } else {
+      // KV 或檔案系統：使用現有邏輯
+      const posts = await getAllPostsFromDB();
+      const newPost = { ...post, id: Date.now() } as BlogPost;
+      posts.unshift(newPost);
+      const success = await savePostsToDB(posts);
+      return success ? newPost : null;
+    }
+  } catch (error) {
+    console.error('Error adding post:', error);
     return null;
   }
 }
@@ -87,15 +208,31 @@ export async function getPostBySlugFromDB(slug: string): Promise<BlogPost | null
 // 更新單篇文章
 export async function updatePostInDB(slug: string, updates: Partial<BlogPost>): Promise<boolean> {
   try {
-    const posts = await getAllPostsFromDB();
-    const postIndex = posts.findIndex(post => post.slug === slug);
+    const dbType = getDatabaseType();
     
-    if (postIndex === -1) {
-      return false;
+    if (dbType === 'neon') {
+      await initDatabase();
+      const { eq } = await import('drizzle-orm');
+      
+      const updateData = convertBlogPostToNeon(updates as BlogPost);
+      delete updateData.slug; // 不更新 slug
+      
+      const result = await neonDb.update(blogPostsTable)
+        .set({ ...updateData, updatedAt: new Date() })
+        .where(eq(blogPostsTable.slug, slug));
+      
+      return result.rowCount > 0;
+    } else {
+      const posts = await getAllPostsFromDB();
+      const postIndex = posts.findIndex(post => post.slug === slug);
+      
+      if (postIndex === -1) {
+        return false;
+      }
+      
+      posts[postIndex] = { ...posts[postIndex], ...updates };
+      return await savePostsToDB(posts);
     }
-    
-    posts[postIndex] = { ...posts[postIndex], ...updates };
-    return await savePostsToDB(posts);
   } catch (error) {
     console.error('Error updating post:', error);
     return false;
@@ -105,14 +242,24 @@ export async function updatePostInDB(slug: string, updates: Partial<BlogPost>): 
 // 刪除單篇文章
 export async function deletePostFromDB(slug: string): Promise<boolean> {
   try {
-    const posts = await getAllPostsFromDB();
-    const filteredPosts = posts.filter(post => post.slug !== slug);
+    const dbType = getDatabaseType();
     
-    if (filteredPosts.length === posts.length) {
-      return false; // 文章不存在
+    if (dbType === 'neon') {
+      await initDatabase();
+      const { eq } = await import('drizzle-orm');
+      
+      const result = await neonDb.delete(blogPostsTable).where(eq(blogPostsTable.slug, slug));
+      return result.rowCount > 0;
+    } else {
+      const posts = await getAllPostsFromDB();
+      const filteredPosts = posts.filter(post => post.slug !== slug);
+      
+      if (filteredPosts.length === posts.length) {
+        return false; // 文章不存在
+      }
+      
+      return await savePostsToDB(filteredPosts);
     }
-    
-    return await savePostsToDB(filteredPosts);
   } catch (error) {
     console.error('Error deleting post:', error);
     return false;
@@ -121,20 +268,24 @@ export async function deletePostFromDB(slug: string): Promise<boolean> {
 
 // 資料庫狀態檢查
 export async function getDatabaseStatus(): Promise<{
-  type: 'file' | 'kv';
+  type: 'file' | 'kv' | 'neon';
   available: boolean;
   postCount: number;
+  url?: string;
 }> {
   try {
+    const dbType = getDatabaseType();
     const posts = await getAllPostsFromDB();
+    
     return {
-      type: isProduction && kv ? 'kv' : 'file',
+      type: dbType as 'file' | 'kv' | 'neon',
       available: true,
-      postCount: posts.length
+      postCount: posts.length,
+      url: dbType === 'neon' ? process.env.DATABASE_URL?.replace(/\/\/.*@/, '//***@') : undefined
     };
   } catch (error) {
     return {
-      type: isProduction && kv ? 'kv' : 'file',
+      type: getDatabaseType() as 'file' | 'kv' | 'neon',
       available: false,
       postCount: 0
     };
