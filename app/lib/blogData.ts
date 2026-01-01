@@ -23,13 +23,22 @@ export function generateId(): number {
 
 // 生成slug (支援中文與特殊字元轉換)
 export function generateSlug(title: string): string {
-  return title
+  let slug = title
     .toLowerCase()
     .replace(/[^a-z0-9\u4e00-\u9fa5\s]/g, '')
     .replace(/\s+/g, '-')
     .replace(/-+/g, '-')
     .replace(/^-|-$/g, '')
-    .substring(0, 50);
+    .substring(0, 40); // 縮短以留空間給時間戳
+  
+  // 如果 slug 為空，使用預設值
+  if (!slug) {
+    slug = 'post';
+  }
+  
+  // 加入時間戳確保唯一性
+  const timestamp = Date.now().toString().slice(-6);
+  return `${slug}-${timestamp}`;
 }
 
 // 獲取認證標頭

@@ -135,7 +135,7 @@ export function getSecurityHeaders(): Record<string, string> {
   };
 }
 
-// 輸入驗證
+// 輸入驗證 - 允許安全的 HTML 內容
 export function validateInput(input: string, maxLength = 1000): boolean {
   if (!input || typeof input !== 'string') {
     return false;
@@ -145,17 +145,54 @@ export function validateInput(input: string, maxLength = 1000): boolean {
     return false;
   }
   
-  // 檢查是否包含惡意腳本
+  // 檢查是否包含惡意腳本（但允許安全的 iframe）
   const dangerousPatterns = [
     /<script/i,
     /javascript:/i,
     /on\w+\s*=/i,
-    /<iframe/i,
     /<object/i,
     /<embed/i,
   ];
   
-  return !dangerousPatterns.some(pattern => pattern.test(input));
+  // 檢查惡意模式
+  if (dangerousPatterns.some(pattern => pattern.test(input))) {
+    return false;
+  }
+  
+  // 如果包含 iframe，檢查是否為安全來源
+  if (/<iframe/i.test(input)) {
+    return validateIframe(input);
+  }
+  
+  return true;
+}
+
+// 驗證 iframe 是否來自安全來源
+function validateIframe(input: string): boolean {
+  // 允許的安全來源
+  const safeSources = [
+    /src="https:\/\/www\.youtube\.com\/embed\//i,
+    /src="https:\/\/www\.youtube-nocookie\.com\/embed\//i,
+    /src="https:\/\/player\.vimeo\.com\/video\//i,
+    /src="https:\/\/www\.dailymotion\.com\/embed\//i,
+  ];
+  
+  // 檢查是否包含安全來源
+  const hasSafeSource = safeSources.some(pattern => pattern.test(input));
+  
+  if (!hasSafeSource) {
+    return false;
+  }
+  
+  // 檢查 iframe 是否包含危險屬性
+  const dangerousIframePatterns = [
+    /on\w+\s*=/i,
+    /javascript:/i,
+    /data:/i,
+    /srcdoc=/i,
+  ];
+  
+  return !dangerousIframePatterns.some(pattern => pattern.test(input));
 }
 
 // 清理 HTML 輸入
