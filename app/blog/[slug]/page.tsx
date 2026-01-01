@@ -184,6 +184,19 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
         </div>
       </section>
 
+      {/* Cover Image */}
+      {post.coverImage && (
+        <section className="px-6">
+          <div className="max-w-4xl mx-auto">
+            <img
+              src={post.coverImage}
+              alt={post.title}
+              className="w-full max-h-96 object-cover rounded-lg shadow-lg"
+            />
+          </div>
+        </section>
+      )}
+
       {/* Content */}
       <section className="px-6 py-12">
         <div className="max-w-4xl mx-auto">

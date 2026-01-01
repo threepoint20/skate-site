@@ -116,7 +116,7 @@ export async function addPost(postData: Omit<BlogPost, 'id' | 'slug' | 'views'>)
       ...postData,
       slug: generateSlug(postData.title),
       views: 0,
-      coverImage: postData.coverImage || '/images/blog/default-cover.png'
+      coverImage: postData.coverImage || undefined
     };
     
     const response = await fetch('/api/blog', {

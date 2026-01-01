@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { addPost } from '../../lib/blogData';
 import ProtectedRoute from '../../components/ProtectedRoute';
+import ImageUpload from '../../components/ImageUpload';
 
 export default function NewBlogPost() {
   return (
@@ -23,7 +24,8 @@ function NewBlogPostContent() {
     category: '',
     author: '',
     tags: '',
-    readTime: ''
+    readTime: '',
+    coverImage: ''
   });
 
   const categories = [
@@ -63,7 +65,8 @@ function NewBlogPostContent() {
         readTime: formData.readTime || '5 分鐘',
         tags: formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag),
         date: new Date().toISOString().split('T')[0],
-        status: '已發布'
+        status: '已發布',
+        coverImage: formData.coverImage
       });
 
       if (newPost) {
@@ -226,6 +229,17 @@ function NewBlogPostContent() {
               />
               <p className="text-sm text-gray-500 mt-1">用逗號分隔多個標籤</p>
             </div>
+
+            {/* Cover Image */}
+            <ImageUpload
+              currentImage={formData.coverImage}
+              onImageUploaded={(imageUrl) => {
+                setFormData(prev => ({ ...prev, coverImage: imageUrl }));
+              }}
+              onImageRemoved={() => {
+                setFormData(prev => ({ ...prev, coverImage: '' }));
+              }}
+            />
 
             {/* Content */}
             <div>
