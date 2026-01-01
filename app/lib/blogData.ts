@@ -1,4 +1,4 @@
-// 部落格文章資料管理 - 使用檔案系統儲存
+// 部落格文章資料管理 - 使用安全的 JWT 認證
 
 export interface BlogPost {
   id: number;
@@ -13,7 +13,6 @@ export interface BlogPost {
   tags: string[];
   status: '已發布' | '草稿';
   views: number;
-  // 💡 新增：文章封面圖路徑 (選填，為了相容舊資料)
   coverImage?: string; 
 }
 
@@ -33,12 +32,19 @@ export function generateSlug(title: string): string {
     .substring(0, 50);
 }
 
+// 獲取認證標頭
+function getAuthHeaders(): HeadersInit {
+  return {
+    'Content-Type': 'application/json',
+  };
+}
+
 // 獲取所有文章
 export async function getAllPosts(): Promise<BlogPost[]> {
   try {
-    // 呼叫我們自己的 API 路由 (/app/api/blog/route.ts)
     const response = await fetch('/api/blog', {
-      cache: 'no-store' 
+      cache: 'no-store',
+      credentials: 'include', // 包含 cookies
     });
     
     if (!response.ok) {
@@ -52,18 +58,22 @@ export async function getAllPosts(): Promise<BlogPost[]> {
   }
 }
 
-// 儲存所有文章 (透過 POST API)
+// 儲存所有文章 (需要管理員權限)
 export async function savePosts(posts: BlogPost[]): Promise<boolean> {
   try {
     const response = await fetch('/api/blog', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: getAuthHeaders(),
+      credentials: 'include',
       body: JSON.stringify(posts),
     });
     
-    return response.ok;
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to save posts');
+    }
+    
+    return true;
   } catch (error) {
     console.error('Error saving posts:', error);
     return false;
@@ -74,7 +84,8 @@ export async function savePosts(posts: BlogPost[]): Promise<boolean> {
 export async function getPostBySlug(slug: string): Promise<BlogPost | null> {
   try {
     const response = await fetch(`/api/blog/${slug}`, {
-      cache: 'no-store'
+      cache: 'no-store',
+      credentials: 'include',
     });
     
     if (!response.ok) {
@@ -98,11 +109,10 @@ export async function addPost(postData: Omit<BlogPost, 'id' | 'slug' | 'views'>)
       id: generateId(),
       slug: generateSlug(postData.title),
       views: 0,
-      // 💡 確保封面圖有值，若沒傳入則給予預設佔位圖
       coverImage: postData.coverImage || '/images/blog/default-cover.png'
     };
     
-    posts.unshift(newPost); // 新文章放在最前面
+    posts.unshift(newPost);
     const success = await savePosts(posts);
     
     return success ? newPost : null;
@@ -112,32 +122,43 @@ export async function addPost(postData: Omit<BlogPost, 'id' | 'slug' | 'views'>)
   }
 }
 
-// 更新文章 (Partial 代表可以只更新部分欄位)
+// 更新文章 (需要管理員權限)
 export async function updatePost(slug: string, updates: Partial<BlogPost>): Promise<boolean> {
   try {
     const response = await fetch(`/api/blog/${slug}`, {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: getAuthHeaders(),
+      credentials: 'include',
       body: JSON.stringify(updates),
     });
     
-    return response.ok;
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to update post');
+    }
+    
+    return true;
   } catch (error) {
     console.error('Error updating post:', error);
     return false;
   }
 }
 
-// 刪除文章
+// 刪除文章 (需要管理員權限)
 export async function deletePost(slug: string): Promise<boolean> {
   try {
     const response = await fetch(`/api/blog/${slug}`, {
       method: 'DELETE',
+      headers: getAuthHeaders(),
+      credentials: 'include',
     });
     
-    return response.ok;
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to delete post');
+    }
+    
+    return true;
   } catch (error) {
     console.error('Error deleting post:', error);
     return false;

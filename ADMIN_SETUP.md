@@ -1,22 +1,32 @@
-# 管理員帳號設定指南
+# 管理員帳號設定指南 - 進階安全版本
 
 ## 🔐 密碼設定
 
 ### 本地開發環境
 
-1. **複製環境變數檔案**
+1. **生成密碼雜湊**
+   ```bash
+   node scripts/hash-password.js '你的安全密碼'
+   ```
+   注意：在 macOS/Linux 中，包含特殊字符的密碼請使用單引號
+
+2. **複製環境變數檔案**
    ```bash
    cp .env.example .env.local
    ```
 
-2. **編輯 `.env.local` 檔案**
+3. **編輯 `.env.local` 檔案**
    ```bash
    # 管理員帳號設定
-   NEXT_PUBLIC_ADMIN_USERNAME=admin
-   ADMIN_PASSWORD=your_secure_password_here
+   ADMIN_USERNAME=admin
+   ADMIN_PASSWORD_HASH="你的bcrypt雜湊值"
+   
+   # JWT 安全設定
+   JWT_SECRET=your_super_secret_jwt_key_at_least_32_characters_long
+   JWT_EXPIRES_IN=24h
    ```
 
-3. **重新啟動開發伺服器**
+4. **重新啟動開發伺服器**
    ```bash
    npm run dev
    ```
@@ -30,12 +40,20 @@
 
 2. **添加環境變數**
    ```
-   Name: NEXT_PUBLIC_ADMIN_USERNAME
+   Name: ADMIN_USERNAME
    Value: admin (或你想要的用戶名)
    Environment: Production, Preview, Development
    
-   Name: ADMIN_PASSWORD  
-   Value: your_secure_password_here
+   Name: ADMIN_PASSWORD_HASH  
+   Value: 你的bcrypt雜湊值
+   Environment: Production, Preview, Development
+   
+   Name: JWT_SECRET
+   Value: 至少32字符的隨機字符串
+   Environment: Production, Preview, Development
+   
+   Name: JWT_EXPIRES_IN
+   Value: 24h
    Environment: Production, Preview, Development
    ```
 

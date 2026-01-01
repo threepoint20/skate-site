@@ -1,4 +1,5 @@
-// 權限管理系統
+// 進階權限管理系統 - 使用 JWT 認證
+import React from 'react';
 
 export type UserRole = 'guest' | 'administrator';
 
@@ -8,15 +9,6 @@ export interface User {
   role: UserRole;
   loginTime?: string;
 }
-
-// 從環境變數或預設值獲取管理員帳號資訊
-const getAdminCredentials = () => {
-  return {
-    username: process.env.NEXT_PUBLIC_ADMIN_USERNAME || 'admin',
-    password: process.env.ADMIN_PASSWORD || 'skate2024!', // 更安全的預設密碼
-    role: 'administrator' as UserRole
-  };
-};
 
 // 檢查是否為管理員
 export function isAdmin(user: User | null): boolean {
@@ -28,73 +20,69 @@ export function isGuest(user: User | null): boolean {
   return user?.role === 'guest' || user === null;
 }
 
-// 獲取當前用戶 (從 localStorage)
-export function getCurrentUser(): User | null {
-  if (typeof window === 'undefined') return null;
-  
+// 獲取當前用戶 (從 API 驗證)
+export async function getCurrentUser(): Promise<User | null> {
   try {
-    const userData = localStorage.getItem('currentUser');
-    if (userData) {
-      return JSON.parse(userData);
+    const response = await fetch('/api/auth/verify', {
+      credentials: 'include', // 包含 cookies
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      return data.user;
     }
   } catch (error) {
-    console.error('Error loading user data:', error);
+    console.error('Error verifying user:', error);
   }
   
   return null;
 }
 
-// 儲存當前用戶
-export function setCurrentUser(user: User | null): void {
-  if (typeof window === 'undefined') return;
-  
+// 登入驗證 (使用 API)
+export async function authenticateUser(username: string, password: string): Promise<User | null> {
   try {
-    if (user) {
-      localStorage.setItem('currentUser', JSON.stringify(user));
+    const response = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+      body: JSON.stringify({ username, password }),
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      return data.user;
     } else {
-      localStorage.removeItem('currentUser');
+      const error = await response.json();
+      throw new Error(error.error || '登入失敗');
     }
   } catch (error) {
-    console.error('Error saving user data:', error);
+    console.error('Authentication error:', error);
+    throw error;
   }
 }
 
-// 登入驗證
-export function authenticateUser(username: string, password: string): User | null {
-  const adminCredentials = getAdminCredentials();
-  
-  // 檢查管理員帳號
-  if (username === adminCredentials.username && password === adminCredentials.password) {
-    const user: User = {
-      id: 'admin-001',
-      username: adminCredentials.username,
-      role: adminCredentials.role,
-      loginTime: new Date().toISOString()
-    };
-    
-    setCurrentUser(user);
-    return user;
+// 登出 (使用 API)
+export async function logout(): Promise<void> {
+  try {
+    await fetch('/api/auth/logout', {
+      method: 'POST',
+      credentials: 'include',
+    });
+  } catch (error) {
+    console.error('Logout error:', error);
   }
-  
-  return null;
-}
-
-// 登出
-export function logout(): void {
-  setCurrentUser(null);
 }
 
 // 創建訪客用戶
 export function createGuestUser(): User {
-  const guestUser: User = {
+  return {
     id: `guest-${Date.now()}`,
     username: 'Guest',
     role: 'guest',
     loginTime: new Date().toISOString()
   };
-  
-  setCurrentUser(guestUser);
-  return guestUser;
 }
 
 // 權限檢查函數
@@ -119,43 +107,52 @@ export function hasPermission(user: User | null, action: string): boolean {
   }
 }
 
-// 獲取管理員用戶名 (用於顯示)
-export function getAdminUsername(): string {
-  return getAdminCredentials().username;
-}
-
 // 權限中間件 Hook
 export function useAuth() {
   const [user, setUser] = React.useState<User | null>(null);
   const [loading, setLoading] = React.useState(true);
-  
+
   React.useEffect(() => {
-    const currentUser = getCurrentUser();
-    if (currentUser) {
-      setUser(currentUser);
-    } else {
-      // 如果沒有用戶，自動創建訪客
-      const guest = createGuestUser();
-      setUser(guest);
-    }
-    setLoading(false);
+    const checkAuth = async () => {
+      try {
+        const currentUser = await getCurrentUser();
+        setUser(currentUser || createGuestUser());
+      } catch (error) {
+        console.error('Auth check failed:', error);
+        setUser(createGuestUser());
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkAuth();
   }, []);
-  
-  const login = (username: string, password: string): boolean => {
-    const authenticatedUser = authenticateUser(username, password);
-    if (authenticatedUser) {
-      setUser(authenticatedUser);
-      return true;
+
+  const login = async (username: string, password: string): Promise<boolean> => {
+    try {
+      const authenticatedUser = await authenticateUser(username, password);
+      if (authenticatedUser) {
+        setUser(authenticatedUser);
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Login failed:', error);
+      return false;
     }
-    return false;
   };
-  
-  const logoutUser = () => {
-    logout();
-    const guest = createGuestUser();
-    setUser(guest);
+
+  const logoutUser = async () => {
+    try {
+      await logout();
+      setUser(createGuestUser());
+    } catch (error) {
+      console.error('Logout failed:', error);
+      // 即使 API 失敗，也要清除本地狀態
+      setUser(createGuestUser());
+    }
   };
-  
+
   return {
     user,
     loading,
@@ -166,6 +163,3 @@ export function useAuth() {
     hasPermission: (action: string) => hasPermission(user, action)
   };
 }
-
-// React import (需要在使用的組件中導入)
-import React from 'react';

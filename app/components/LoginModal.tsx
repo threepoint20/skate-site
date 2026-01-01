@@ -1,12 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { getAdminUsername } from '../lib/auth';
 
 interface LoginModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onLogin: (username: string, password: string) => boolean;
+  onLogin: (username: string, password: string) => Promise<boolean>;
 }
 
 export default function LoginModal({ isOpen, onClose, onLogin }: LoginModalProps) {
@@ -21,7 +20,7 @@ export default function LoginModal({ isOpen, onClose, onLogin }: LoginModalProps
     setLoading(true);
 
     try {
-      const success = onLogin(username, password);
+      const success = await onLogin(username, password);
       if (success) {
         setUsername('');
         setPassword('');
@@ -29,8 +28,8 @@ export default function LoginModal({ isOpen, onClose, onLogin }: LoginModalProps
       } else {
         setError('帳號或密碼錯誤');
       }
-    } catch (error) {
-      setError('登入時發生錯誤');
+    } catch (error: any) {
+      setError(error.message || '登入時發生錯誤');
     } finally {
       setLoading(false);
     }
