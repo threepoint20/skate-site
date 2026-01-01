@@ -1,17 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
 import { verifyRequestAuth, getSecurityHeaders, checkRateLimit, getClientIP, validateInput } from '@/app/lib/security';
-
-const DATA_FILE = path.join(process.cwd(), 'data', 'blog-posts.json');
-
-// 確保資料目錄存在
-function ensureDataDirectory() {
-  const dataDir = path.dirname(DATA_FILE);
-  if (!fs.existsSync(dataDir)) {
-    fs.mkdirSync(dataDir, { recursive: true });
-  }
-}
+import { getAllPostsFromDB, savePostsToDB } from '@/app/lib/database';
 
 // 讀取所有文章
 export async function GET(request: NextRequest) {
@@ -25,15 +14,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    ensureDataDirectory();
-    
-    if (!fs.existsSync(DATA_FILE)) {
-      return NextResponse.json([], { headers: getSecurityHeaders() });
-    }
-    
-    const data = fs.readFileSync(DATA_FILE, 'utf8');
-    const posts = JSON.parse(data);
-    
+    const posts = await getAllPostsFromDB();
     return NextResponse.json(posts, { headers: getSecurityHeaders() });
   } catch (error) {
     console.error('Error reading blog posts:', error);
@@ -65,8 +46,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    ensureDataDirectory();
-    
     const posts = await request.json();
     
     // 驗證資料格式
@@ -87,13 +66,12 @@ export async function POST(request: NextRequest) {
       }
     }
     
-    try {
-      fs.writeFileSync(DATA_FILE, JSON.stringify(posts, null, 2), 'utf8');
+    const success = await savePostsToDB(posts);
+    if (success) {
       return NextResponse.json({ success: true }, { headers: getSecurityHeaders() });
-    } catch (writeError) {
-      console.error('Write error (expected in Vercel):', writeError);
+    } else {
       return NextResponse.json(
-        { error: 'File system is read-only in production. Consider using a database.' },
+        { error: '儲存文章失敗' },
         { status: 500, headers: getSecurityHeaders() }
       );
     }

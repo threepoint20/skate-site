@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
 import { verifyRequestAuth, getSecurityHeaders, checkRateLimit, getClientIP, validateInput } from '@/app/lib/security';
-
-const DATA_FILE = path.join(process.cwd(), 'data', 'blog-posts.json');
+import { getPostBySlugFromDB, updatePostInDB, deletePostFromDB } from '@/app/lib/database';
 
 interface BlogPost {
   id: number;
@@ -36,18 +33,7 @@ export async function GET(
     }
 
     const { slug } = await params;
-
-    if (!fs.existsSync(DATA_FILE)) {
-      return NextResponse.json(
-        { error: 'Post not found' },
-        { status: 404, headers: getSecurityHeaders() }
-      );
-    }
-    
-    const data = fs.readFileSync(DATA_FILE, 'utf8');
-    const posts: BlogPost[] = JSON.parse(data);
-    
-    const post = posts.find(p => p.slug === slug);
+    const post = await getPostBySlugFromDB(slug);
     
     if (!post) {
       return NextResponse.json(
@@ -91,14 +77,6 @@ export async function PUT(
     }
 
     const { slug } = await params;
-
-    if (!fs.existsSync(DATA_FILE)) {
-      return NextResponse.json(
-        { error: 'Post not found' },
-        { status: 404, headers: getSecurityHeaders() }
-      );
-    }
-    
     const updates = await request.json();
     
     // 驗證輸入
@@ -116,24 +94,17 @@ export async function PUT(
       );
     }
     
-    const data = fs.readFileSync(DATA_FILE, 'utf8');
-    const posts: BlogPost[] = JSON.parse(data);
+    const success = await updatePostInDB(slug, updates);
     
-    const postIndex = posts.findIndex(p => p.slug === slug);
-    
-    if (postIndex === -1) {
+    if (!success) {
       return NextResponse.json(
         { error: 'Post not found' },
         { status: 404, headers: getSecurityHeaders() }
       );
     }
     
-    // 更新文章
-    posts[postIndex] = { ...posts[postIndex], ...updates };
-    
-    fs.writeFileSync(DATA_FILE, JSON.stringify(posts, null, 2), 'utf8');
-    
-    return NextResponse.json(posts[postIndex], { headers: getSecurityHeaders() });
+    const updatedPost = await getPostBySlugFromDB(slug);
+    return NextResponse.json(updatedPost, { headers: getSecurityHeaders() });
   } catch (error) {
     console.error('Error updating blog post:', error);
     return NextResponse.json(
@@ -168,27 +139,14 @@ export async function DELETE(
     }
 
     const { slug } = await params;
-
-    if (!fs.existsSync(DATA_FILE)) {
+    const success = await deletePostFromDB(slug);
+    
+    if (!success) {
       return NextResponse.json(
         { error: 'Post not found' },
         { status: 404, headers: getSecurityHeaders() }
       );
     }
-    
-    const data = fs.readFileSync(DATA_FILE, 'utf8');
-    const posts: BlogPost[] = JSON.parse(data);
-    
-    const filteredPosts = posts.filter(p => p.slug !== slug);
-    
-    if (filteredPosts.length === posts.length) {
-      return NextResponse.json(
-        { error: 'Post not found' },
-        { status: 404, headers: getSecurityHeaders() }
-      );
-    }
-    
-    fs.writeFileSync(DATA_FILE, JSON.stringify(filteredPosts, null, 2), 'utf8');
     
     return NextResponse.json({ success: true }, { headers: getSecurityHeaders() });
   } catch (error) {

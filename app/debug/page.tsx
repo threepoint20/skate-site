@@ -40,39 +40,56 @@ export default function DebugPage() {
 
         <div className="bg-white rounded-lg shadow p-6">
           <h2 className="text-xl font-semibold mb-4">測試 API 呼叫</h2>
-          <button
-            onClick={async () => {
-              try {
-                const response = await fetch('/api/auth/verify', {
-                  credentials: 'include'
-                });
-                const data = await response.json();
-                alert(`API 回應: ${JSON.stringify(data, null, 2)}`);
-              } catch (error: any) {
-                alert(`API 錯誤: ${error.message}`);
-              }
-            }}
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 mr-4"
-          >
-            測試驗證 API
-          </button>
-          
-          <button
-            onClick={async () => {
-              try {
-                const response = await fetch('/api/blog', {
-                  credentials: 'include'
-                });
-                const data = await response.json();
-                alert(`文章數量: ${data.length}`);
-              } catch (error: any) {
-                alert(`API 錯誤: ${error.message}`);
-              }
-            }}
-            className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
-          >
-            測試文章 API
-          </button>
+          <div className="space-y-4">
+            <button
+              onClick={async () => {
+                try {
+                  const response = await fetch('/api/auth/verify', {
+                    credentials: 'include'
+                  });
+                  const data = await response.json();
+                  alert(`API 回應: ${JSON.stringify(data, null, 2)}`);
+                } catch (error: any) {
+                  alert(`API 錯誤: ${error.message}`);
+                }
+              }}
+              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 mr-4"
+            >
+              測試驗證 API
+            </button>
+            
+            <button
+              onClick={async () => {
+                try {
+                  const response = await fetch('/api/blog', {
+                    credentials: 'include'
+                  });
+                  const data = await response.json();
+                  alert(`文章數量: ${data.length}`);
+                } catch (error: any) {
+                  alert(`API 錯誤: ${error.message}`);
+                }
+              }}
+              className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 mr-4"
+            >
+              測試文章 API
+            </button>
+
+            <button
+              onClick={async () => {
+                try {
+                  const response = await fetch('/api/database/status');
+                  const data = await response.json();
+                  alert(`資料庫狀態: ${JSON.stringify(data, null, 2)}`);
+                } catch (error: any) {
+                  alert(`API 錯誤: ${error.message}`);
+                }
+              }}
+              className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700"
+            >
+              檢查資料庫狀態
+            </button>
+          </div>
         </div>
       </div>
     </div>
