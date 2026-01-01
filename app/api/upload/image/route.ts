@@ -12,12 +12,27 @@ const isProduction = process.env.NODE_ENV === 'production';
 
 // 檢查 Vercel Blob 是否可用
 function isVercelBlobAvailable(): boolean {
-  return !!(process.env.BLOB_READ_WRITE_TOKEN || process.env.VERCEL_BLOB_READ_WRITE_TOKEN);
+  const token = process.env.BLOB_READ_WRITE_TOKEN || process.env.VERCEL_BLOB_READ_WRITE_TOKEN;
+  console.log('Vercel Blob availability check:', {
+    hasToken: !!token,
+    tokenLength: token?.length || 0,
+    nodeEnv: process.env.NODE_ENV,
+    vercelEnv: process.env.VERCEL_ENV,
+    allBlobEnvVars: Object.keys(process.env).filter(key => key.includes('BLOB'))
+  });
+  return !!token;
 }
 
 // 上傳到 Vercel Blob (生產環境)
 async function uploadToVercelBlob(file: File, fileName: string) {
   try {
+    console.log('Attempting Vercel Blob upload:', {
+      fileName,
+      fileSize: file.size,
+      fileType: file.type,
+      hasToken: isVercelBlobAvailable()
+    });
+    
     // 檢查 token 是否可用
     if (!isVercelBlobAvailable()) {
       throw new Error('Vercel Blob token not configured');
@@ -26,15 +41,33 @@ async function uploadToVercelBlob(file: File, fileName: string) {
     // 動態導入 Vercel Blob
     const { put } = await import('@vercel/blob');
     
+    // 嘗試上傳，不指定 token（讓 SDK 自動使用環境變數）
     const blob = await put(fileName, file, {
       access: 'public',
       addRandomSuffix: false,
     });
     
+    console.log('Vercel Blob upload successful:', {
+      url: blob.url,
+      downloadUrl: blob.downloadUrl
+    });
+    
     return blob.url;
-  } catch (error) {
-    console.error('Vercel Blob upload failed:', error);
-    throw new Error('雲端儲存上傳失敗');
+  } catch (error: any) {
+    console.error('Vercel Blob upload failed:', {
+      error: error.message,
+      stack: error.stack,
+      name: error.name
+    });
+    
+    // 提供更具體的錯誤訊息
+    if (error.message?.includes('No token found')) {
+      throw new Error('Vercel Blob token 未正確設定。請檢查 BLOB_READ_WRITE_TOKEN 環境變數。');
+    } else if (error.message?.includes('unauthorized')) {
+      throw new Error('Vercel Blob token 無效或已過期。請重新設定 token。');
+    } else {
+      throw new Error(`雲端儲存上傳失敗: ${error.message}`);
+    }
   }
 }
 
@@ -62,19 +95,49 @@ async function uploadToLocalFileSystem(file: File, fileName: string) {
 
 // 智慧上傳：根據環境和可用性選擇最佳方案
 async function smartUpload(file: File, fileName: string): Promise<string> {
-  if (isProduction && isVercelBlobAvailable()) {
-    // 生產環境且 Vercel Blob 可用
-    try {
-      return await uploadToVercelBlob(file, fileName);
-    } catch (error) {
-      console.warn('Vercel Blob failed, this will cause issues in production:', error);
-      throw error; // 生產環境不能回退到本地檔案系統
+  console.log('Smart upload starting:', {
+    isProduction,
+    blobAvailable: isVercelBlobAvailable(),
+    fileName,
+    fileSize: file.size
+  });
+
+  if (isProduction) {
+    if (isVercelBlobAvailable()) {
+      // 生產環境且 Vercel Blob 可用
+      try {
+        return await uploadToVercelBlob(file, fileName);
+      } catch (error: any) {
+        console.error('Vercel Blob failed in production:', error);
+        
+        // 如果是 token 問題，提供具體指導
+        if (error.message?.includes('token') || error.message?.includes('unauthorized')) {
+          throw new Error(`
+            Vercel Blob 配置問題：${error.message}
+            
+            請檢查以下步驟：
+            1. 確認在 Vercel 控制台已設定 BLOB_READ_WRITE_TOKEN
+            2. 重新部署專案以載入新的環境變數
+            3. 確認 token 沒有過期或被撤銷
+          `);
+        }
+        
+        throw error;
+      }
+    } else {
+      // 生產環境但 Vercel Blob 不可用
+      throw new Error(`
+        生產環境需要配置 Vercel Blob 儲存。
+        
+        請在 Vercel 控制台設定以下環境變數：
+        - BLOB_READ_WRITE_TOKEN
+        
+        然後重新部署專案。
+      `);
     }
-  } else if (isProduction && !isVercelBlobAvailable()) {
-    // 生產環境但 Vercel Blob 不可用
-    throw new Error('生產環境需要配置 Vercel Blob。請在 Vercel 控制台設定 BLOB_READ_WRITE_TOKEN 環境變數。');
   } else {
     // 開發環境：使用本地檔案系統
+    console.log('Using local file system for development');
     return await uploadToLocalFileSystem(file, fileName);
   }
 }
