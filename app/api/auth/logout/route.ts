@@ -12,7 +12,7 @@ export async function POST() {
     response.cookies.set('auth-token', '', {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      sameSite: 'lax', // 改為 lax 以支援 Vercel 的不同部署域名
       maxAge: 0,
       path: '/',
     });
