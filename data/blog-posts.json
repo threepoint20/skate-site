@@ -1,1 +1,59 @@
-[]
+[
+  {
+    "title": "test",
+    "content": "test\nhttps://youtu.be/bd2DY84-XKs?si=UkrVxGcXhCjhZpCl",
+    "excerpt": "test",
+    "category": "初學者指南",
+    "author": "Su",
+    "readTime": "5分鐘",
+    "tags": [
+      "test"
+    ],
+    "date": "2026-01-01",
+    "status": "已發布",
+    "id": 1767231626372,
+    "slug": "test",
+    "views": 2,
+    "coverImage": "/images/blog/default-cover.png"
+  },
+  {
+    "id": 1735689600000,
+    "slug": "skateboard-basics-guide",
+    "title": "滑板基礎入門指南",
+    "content": "滑板是一項充滿樂趣和挑戰的運動。對於初學者來說，掌握基本技巧是非常重要的。\n\n## 選擇合適的滑板\n\n首先，你需要選擇一塊適合的滑板。對於初學者，建議選擇：\n- 板面寬度：7.5-8.0 英寸\n- 輪子硬度：78A-87A（較軟，適合街道滑行）\n- 軸承：ABEC-5 或以上\n\n## 基本站姿\n\n正確的站姿是學習滑板的基礎：\n1. 確定你的主導腳（通常是你踢球時使用的腳）\n2. 主導腳放在板尾，另一隻腳放在板頭附近\n3. 保持膝蓋微彎，重心稍微向前\n\n## 推進技巧\n\n學會推進是滑板的第一步：\n1. 用前腳站在板上，保持平衡\n2. 後腳輕推地面，給滑板加速\n3. 推進後，快速將後腳放回板上\n\n## 安全提醒\n\n- 始終佩戴頭盔和護具\n- 選擇平坦、無車輛的地方練習\n- 從慢速開始，逐漸提高速度\n\n記住，學習滑板需要時間和耐心。不要害怕跌倒，這是學習過程的一部分！",
+    "excerpt": "滑板基礎入門指南，包含選板建議、基本站姿、推進技巧和安全提醒，適合初學者學習。",
+    "date": "2024-12-31",
+    "category": "教學指南",
+    "readTime": "5 分鐘",
+    "author": "滑板教練",
+    "tags": [
+      "初學者",
+      "基礎技巧",
+      "安全",
+      "選板"
+    ],
+    "status": "已發布",
+    "views": 156,
+    "coverImage": "/images/blog/skateboard-basics.jpg"
+  },
+  {
+    "id": 1735689500000,
+    "slug": "street-skateboarding-tricks",
+    "title": "街頭滑板技巧大全",
+    "content": "街頭滑板是滑板文化的核心，掌握各種技巧能讓你在街頭自由穿梭。\n\n## Ollie - 基礎跳躍\n\nOllie 是所有滑板技巧的基礎：\n1. 後腳踩板尾，前腳放在板中央\n2. 用力踩下板尾，同時前腳向前滑動\n3. 雙腳同時向上跳，帶動滑板離地\n\n## Kickflip - 踢翻\n\n在 Ollie 的基礎上加入板面旋轉：\n1. 執行 Ollie 動作\n2. 前腳在滑動時向外側踢板邊\n3. 等待板面完成一圈旋轉後落地\n\n## Manual - 翹頭滑行\n\n只用後輪滑行的技巧：\n1. 保持一定速度\n2. 重心向後，抬起前輪\n3. 用腳踝和膝蓋調整平衡\n\n## Grind - 磨邊\n\n利用滑板軸承在邊緣滑行：\n1. 以適當角度接近邊緣\n2. 執行 Ollie 跳上邊緣\n3. 保持平衡，讓軸承在邊緣滑行\n\n## 練習建議\n\n- 每天練習基本動作\n- 觀看專業滑手的影片學習\n- 找到合適的練習場地\n- 與其他滑手交流經驗\n\n街頭滑板需要大量練習，但掌握後會帶來無與倫比的成就感！",
+    "excerpt": "詳細介紹街頭滑板的各種技巧，包括 Ollie、Kickflip、Manual 和 Grind 等經典動作。",
+    "date": "2024-12-30",
+    "category": "技巧教學",
+    "readTime": "8 分鐘",
+    "author": "街頭滑手",
+    "tags": [
+      "街頭滑板",
+      "技巧",
+      "Ollie",
+      "Kickflip"
+    ],
+    "status": "已發布",
+    "views": 243,
+    "coverImage": "/images/blog/street-tricks.jpg"
+  }
+]

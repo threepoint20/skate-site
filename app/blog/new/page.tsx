@@ -72,9 +72,10 @@ function NewBlogPostContent() {
       } else {
         alert('建立文章時發生錯誤，請稍後再試');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating post:', error);
-      alert('建立文章時發生錯誤，請稍後再試');
+      const errorMessage = error.message || '建立文章時發生錯誤，請稍後再試';
+      alert(`錯誤：${errorMessage}`);
     }
   };
 

@@ -70,13 +70,14 @@ export async function savePosts(posts: BlogPost[]): Promise<boolean> {
     
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.error || 'Failed to save posts');
+      const errorMessage = error.error || `HTTP ${response.status}`;
+      throw new Error(`API 錯誤: ${errorMessage}`);
     }
     
     return true;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error saving posts:', error);
-    return false;
+    throw new Error(error.message || '儲存文章失敗');
   }
 }
 
@@ -115,10 +116,14 @@ export async function addPost(postData: Omit<BlogPost, 'id' | 'slug' | 'views'>)
     posts.unshift(newPost);
     const success = await savePosts(posts);
     
-    return success ? newPost : null;
-  } catch (error) {
+    if (!success) {
+      throw new Error('無法儲存文章資料');
+    }
+    
+    return newPost;
+  } catch (error: any) {
     console.error('Error adding post:', error);
-    return null;
+    throw new Error(error.message || '新增文章失敗');
   }
 }
 
