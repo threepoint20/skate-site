@@ -10,9 +10,19 @@ const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 // 檢查是否在生產環境
 const isProduction = process.env.NODE_ENV === 'production';
 
+// 檢查 Vercel Blob 是否可用
+function isVercelBlobAvailable(): boolean {
+  return !!(process.env.BLOB_READ_WRITE_TOKEN || process.env.VERCEL_BLOB_READ_WRITE_TOKEN);
+}
+
 // 上傳到 Vercel Blob (生產環境)
 async function uploadToVercelBlob(file: File, fileName: string) {
   try {
+    // 檢查 token 是否可用
+    if (!isVercelBlobAvailable()) {
+      throw new Error('Vercel Blob token not configured');
+    }
+    
     // 動態導入 Vercel Blob
     const { put } = await import('@vercel/blob');
     
@@ -47,6 +57,25 @@ async function uploadToLocalFileSystem(file: File, fileName: string) {
   } catch (error) {
     console.error('Local file system upload failed:', error);
     throw new Error('本地儲存上傳失敗');
+  }
+}
+
+// 智慧上傳：根據環境和可用性選擇最佳方案
+async function smartUpload(file: File, fileName: string): Promise<string> {
+  if (isProduction && isVercelBlobAvailable()) {
+    // 生產環境且 Vercel Blob 可用
+    try {
+      return await uploadToVercelBlob(file, fileName);
+    } catch (error) {
+      console.warn('Vercel Blob failed, this will cause issues in production:', error);
+      throw error; // 生產環境不能回退到本地檔案系統
+    }
+  } else if (isProduction && !isVercelBlobAvailable()) {
+    // 生產環境但 Vercel Blob 不可用
+    throw new Error('生產環境需要配置 Vercel Blob。請在 Vercel 控制台設定 BLOB_READ_WRITE_TOKEN 環境變數。');
+  } else {
+    // 開發環境：使用本地檔案系統
+    return await uploadToLocalFileSystem(file, fileName);
   }
 }
 
@@ -102,15 +131,17 @@ export async function POST(request: NextRequest) {
     const fileExtension = path.extname(file.name).toLowerCase();
     const safeFileName = `blog-cover-${timestamp}-${randomString}${fileExtension}`;
 
-    // 根據環境選擇上傳方式
+    // 根據環境和可用性智慧選擇上傳方式
     let imageUrl: string;
     
-    if (isProduction) {
-      // 生產環境：使用 Vercel Blob
-      imageUrl = await uploadToVercelBlob(file, safeFileName);
-    } else {
-      // 開發環境：使用本地檔案系統
-      imageUrl = await uploadToLocalFileSystem(file, safeFileName);
+    try {
+      imageUrl = await smartUpload(file, safeFileName);
+    } catch (error: any) {
+      console.error('Smart upload failed:', error);
+      return NextResponse.json(
+        { error: error.message || '圖片上傳失敗，請稍後再試' },
+        { status: 500, headers: getSecurityHeaders() }
+      );
     }
 
     return NextResponse.json(
