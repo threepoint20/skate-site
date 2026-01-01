@@ -21,7 +21,7 @@ export function generateToken(payload: Omit<JWTPayload, 'iat' | 'exp'>): string 
   
   return jwt.sign(payload, secret, {
     expiresIn: process.env.JWT_EXPIRES_IN || '24h',
-  });
+  } as jwt.SignOptions);
 }
 
 // 驗證 JWT token

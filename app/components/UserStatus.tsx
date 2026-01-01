@@ -8,7 +8,7 @@ interface UserStatusProps {
   user: User | null;
   loading: boolean;
   isAdmin: boolean;
-  onLogin: (username: string, password: string) => boolean;
+  onLogin: (username: string, password: string) => Promise<boolean>;
   onLogout: () => void;
 }
 
