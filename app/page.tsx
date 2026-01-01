@@ -1,4 +1,32 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { getAllPosts, BlogPost } from './lib/blogData';
+
 export default function Home() {
+  const [latestPosts, setLatestPosts] = useState<BlogPost[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadLatestPosts = async () => {
+      try {
+        const posts = await getAllPosts();
+        // 取得最新的 3 篇已發布文章
+        const publishedPosts = posts
+          .filter(post => post.status === '已發布')
+          .slice(0, 3);
+        setLatestPosts(publishedPosts);
+      } catch (error) {
+        console.error('Error loading latest posts:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadLatestPosts();
+  }, []);
+
   return (
     <main className="min-h-screen bg-background text-foreground">
       {/* Hero Section */}
@@ -66,30 +94,52 @@ export default function Home() {
         <div className="max-w-4xl mx-auto">
           <h2 className="text-4xl font-bold text-center">最新文章</h2>
 
-          <div className="mt-10 grid gap-8 md:grid-cols-3">
-            <div className="p-6 border rounded-xl hover:shadow-lg transition">
-              <h3 className="text-xl font-semibold">文章標題 1</h3>
-              <p className="mt-2 text-gray-600">文章摘要內容…</p>
+          {loading ? (
+            <div className="mt-10 text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-black mx-auto"></div>
+              <p className="mt-2 text-gray-600">載入中...</p>
             </div>
-
-            <div className="p-6 border rounded-xl hover:shadow-lg transition">
-              <h3 className="text-xl font-semibold">文章標題 2</h3>
-              <p className="mt-2 text-gray-600">文章摘要內容…</p>
+          ) : latestPosts.length > 0 ? (
+            <div className="mt-10 grid gap-8 md:grid-cols-3">
+              {latestPosts.map((post) => (
+                <Link key={post.id} href={`/blog/${post.slug}`}>
+                  <div className="p-6 border rounded-xl hover:shadow-lg transition cursor-pointer bg-white">
+                    {post.coverImage && (
+                      <img
+                        src={post.coverImage}
+                        alt={post.title}
+                        className="w-full h-40 object-cover rounded-lg mb-4"
+                      />
+                    )}
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
+                        {post.category}
+                      </span>
+                      <span className="text-xs text-gray-500">{post.readTime}</span>
+                    </div>
+                    <h3 className="text-xl font-semibold mb-2 line-clamp-2">{post.title}</h3>
+                    <p className="text-gray-600 text-sm line-clamp-3">{post.excerpt}</p>
+                    <div className="mt-3 flex justify-between items-center text-xs text-gray-500">
+                      <span>{post.author}</span>
+                      <span>{post.date}</span>
+                    </div>
+                  </div>
+                </Link>
+              ))}
             </div>
-
-            <div className="p-6 border rounded-xl hover:shadow-lg transition">
-              <h3 className="text-xl font-semibold">文章標題 3</h3>
-              <p className="mt-2 text-gray-600">文章摘要內容…</p>
+          ) : (
+            <div className="mt-10 text-center">
+              <p className="text-gray-600">目前還沒有文章</p>
             </div>
-          </div>
+          )}
 
           <div className="text-center mt-10">
-            <a
+            <Link
               href="/blog"
               className="px-6 py-3 border border-black rounded-lg text-lg font-semibold hover:bg-black hover:text-white transition"
             >
               查看全部文章
-            </a>
+            </Link>
           </div>
         </div>
       </section>
