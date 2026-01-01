@@ -81,15 +81,17 @@ export async function PUT(
     
     // 驗證輸入
     if (updates.title && !validateInput(updates.title, 200)) {
+      console.log('Title validation failed during update for:', updates.title?.substring(0, 100));
       return NextResponse.json(
-        { error: '標題包含無效字符或過長' },
+        { error: '標題包含無效字符或過長（最多 200 字符）' },
         { status: 400, headers: getSecurityHeaders() }
       );
     }
     
     if (updates.content && !validateInput(updates.content, 50000)) {
+      console.log('Content validation failed during update, content length:', updates.content?.length);
       return NextResponse.json(
-        { error: '內容包含無效字符或過長' },
+        { error: '內容包含無效字符或過長（最多 50000 字符）。如果包含 iframe，請確保來源為 YouTube、Vimeo、Dailymotion 或 Google Maps。' },
         { status: 400, headers: getSecurityHeaders() }
       );
     }

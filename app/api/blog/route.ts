@@ -57,9 +57,21 @@ export async function POST(request: NextRequest) {
     }
     
     // 驗證文章內容
-    if (!validateInput(postData.title, 200) || !validateInput(postData.content, 50000)) {
+    const titleValid = validateInput(postData.title, 200);
+    const contentValid = validateInput(postData.content, 50000);
+    
+    if (!titleValid) {
+      console.log('Title validation failed for:', postData.title?.substring(0, 100));
       return NextResponse.json(
-        { error: '文章內容包含無效字符或過長' },
+        { error: '文章標題包含無效字符或過長（最多 200 字符）' },
+        { status: 400, headers: getSecurityHeaders() }
+      );
+    }
+    
+    if (!contentValid) {
+      console.log('Content validation failed for content length:', postData.content?.length);
+      return NextResponse.json(
+        { error: '文章內容包含無效字符或過長（最多 50000 字符）。如果包含 iframe，請確保來源為 YouTube、Vimeo、Dailymotion 或 Google Maps。' },
         { status: 400, headers: getSecurityHeaders() }
       );
     }

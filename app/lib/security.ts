@@ -142,6 +142,10 @@ export function validateInput(input: string, maxLength = 1000): boolean {
   }
   
   if (input.length > maxLength) {
+    console.log('Input validation failed: content too long', {
+      length: input.length,
+      maxLength
+    });
     return false;
   }
   
@@ -155,13 +159,22 @@ export function validateInput(input: string, maxLength = 1000): boolean {
   ];
   
   // 檢查惡意模式
-  if (dangerousPatterns.some(pattern => pattern.test(input))) {
+  const matchedDangerousPattern = dangerousPatterns.find(pattern => pattern.test(input));
+  if (matchedDangerousPattern) {
+    console.log('Input validation failed: dangerous pattern detected', {
+      pattern: matchedDangerousPattern.toString(),
+      input: input.substring(0, 200) + '...'
+    });
     return false;
   }
   
   // 如果包含 iframe，檢查是否為安全來源
   if (/<iframe/i.test(input)) {
-    return validateIframe(input);
+    const isValidIframe = validateIframe(input);
+    if (!isValidIframe) {
+      console.log('Input validation failed: invalid iframe');
+    }
+    return isValidIframe;
   }
   
   return true;
@@ -171,16 +184,28 @@ export function validateInput(input: string, maxLength = 1000): boolean {
 function validateIframe(input: string): boolean {
   // 允許的安全來源
   const safeSources = [
+    // YouTube
     /src="https:\/\/www\.youtube\.com\/embed\//i,
     /src="https:\/\/www\.youtube-nocookie\.com\/embed\//i,
+    // Vimeo
     /src="https:\/\/player\.vimeo\.com\/video\//i,
+    // Dailymotion
     /src="https:\/\/www\.dailymotion\.com\/embed\//i,
+    // Google Maps
+    /src="https:\/\/www\.google\.com\/maps\/embed/i,
+    /src="https:\/\/maps\.google\.com\/maps/i,
+    // Google My Maps
+    /src="https:\/\/www\.google\.com\/maps\/d\/embed/i,
   ];
   
   // 檢查是否包含安全來源
   const hasSafeSource = safeSources.some(pattern => pattern.test(input));
   
   if (!hasSafeSource) {
+    console.log('Iframe validation failed: unsafe source detected', {
+      input: input.substring(0, 200) + '...',
+      matchedPatterns: safeSources.map(pattern => pattern.test(input))
+    });
     return false;
   }
   
@@ -192,7 +217,17 @@ function validateIframe(input: string): boolean {
     /srcdoc=/i,
   ];
   
-  return !dangerousIframePatterns.some(pattern => pattern.test(input));
+  const hasDangerousPattern = dangerousIframePatterns.some(pattern => pattern.test(input));
+  
+  if (hasDangerousPattern) {
+    console.log('Iframe validation failed: dangerous pattern detected', {
+      input: input.substring(0, 200) + '...',
+      dangerousPatterns: dangerousIframePatterns.map(pattern => pattern.test(input))
+    });
+    return false;
+  }
+  
+  return true;
 }
 
 // 清理 HTML 輸入
