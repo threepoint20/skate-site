@@ -1,6 +1,7 @@
 // 將本地資料遷移到 Neon 資料庫
 const fs = require('fs');
 const path = require('path');
+require('dotenv').config({ path: '.env.local' });
 
 const DATA_FILE = path.join(process.cwd(), 'data', 'blog-posts.json');
 
@@ -29,7 +30,27 @@ async function migrateToNeon() {
     // 初始化 Neon 連接
     const { neon } = require('@neondatabase/serverless');
     const { drizzle } = require('drizzle-orm/neon-http');
-    const { blogPosts } = require('../app/lib/schema');
+    
+    // 手動定義 schema（避免模組路徑問題）
+    const { pgTable, serial, text, integer, timestamp, json } = require('drizzle-orm/pg-core');
+    
+    const blogPosts = pgTable('blog_posts', {
+      id: serial('id').primaryKey(),
+      slug: text('slug').notNull().unique(),
+      title: text('title').notNull(),
+      content: text('content').notNull(),
+      excerpt: text('excerpt').notNull(),
+      date: text('date').notNull(),
+      category: text('category').notNull(),
+      readTime: text('read_time').notNull(),
+      author: text('author').notNull(),
+      tags: json('tags').notNull().default([]),
+      status: text('status').notNull().default('已發布'),
+      views: integer('views').notNull().default(0),
+      coverImage: text('cover_image'),
+      createdAt: timestamp('created_at').defaultNow(),
+      updatedAt: timestamp('updated_at').defaultNow(),
+    });
 
     const sql = neon(process.env.DATABASE_URL);
     const db = drizzle(sql);
