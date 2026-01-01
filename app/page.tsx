@@ -11,14 +11,21 @@ export default function Home() {
   useEffect(() => {
     const loadLatestPosts = async () => {
       try {
+        console.log('Loading latest posts for homepage...');
         const posts = await getAllPosts();
+        console.log('Loaded posts:', posts.length);
+        
         // 取得最新的 3 篇已發布文章
         const publishedPosts = posts
           .filter(post => post.status === '已發布')
           .slice(0, 3);
+        
+        console.log('Published posts for homepage:', publishedPosts.length);
         setLatestPosts(publishedPosts);
       } catch (error) {
         console.error('Error loading latest posts:', error);
+        // 如果載入失敗，顯示錯誤狀態
+        setLatestPosts([]);
       } finally {
         setLoading(false);
       }
@@ -130,6 +137,9 @@ export default function Home() {
           ) : (
             <div className="mt-10 text-center">
               <p className="text-gray-600">目前還沒有文章</p>
+              <p className="text-xs text-gray-400 mt-2">
+                除錯資訊：載入狀態 = {loading ? '載入中' : '已完成'}，文章數量 = {latestPosts.length}
+              </p>
             </div>
           )}
 
