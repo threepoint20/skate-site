@@ -100,6 +100,21 @@ function AdminDashboardContent() {
               </div>
             </Link>
 
+            {/* 圖片管理 */}
+            <Link href="/admin/images">
+              <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer">
+                <div className="flex items-center mb-4">
+                  <div className="w-12 h-12 bg-pink-100 rounded-lg flex items-center justify-center">
+                    <span className="text-pink-600 text-2xl">🖼️</span>
+                  </div>
+                  <h3 className="text-xl font-semibold ml-3 text-black">圖片管理</h3>
+                </div>
+                <p className="text-gray-600">
+                  管理網站中的所有圖片，包含活動照片、封面圖等
+                </p>
+              </div>
+            </Link>
+
             {/* 權限說明 */}
             <div className="bg-gray-50 p-6 rounded-lg border-2 border-dashed border-gray-300">
               <div className="flex items-center mb-4">

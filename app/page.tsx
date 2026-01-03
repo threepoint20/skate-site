@@ -3,13 +3,15 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { getAllPosts, BlogPost } from './lib/blogData';
+import { getImagesByCategory, SiteImage } from './lib/imageManager';
 
 export default function Home() {
   const [latestPosts, setLatestPosts] = useState<BlogPost[]>([]);
+  const [activityImages, setActivityImages] = useState<SiteImage[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const loadLatestPosts = async () => {
+    const loadContent = async () => {
       try {
         console.log('Loading latest posts for homepage...');
         const posts = await getAllPosts();
@@ -22,16 +24,22 @@ export default function Home() {
         
         console.log('Published posts for homepage:', publishedPosts.length);
         setLatestPosts(publishedPosts);
+
+        // 載入活動照片
+        const images = await getImagesByCategory('activity');
+        console.log('Loaded activity images:', images.length);
+        setActivityImages(images.slice(0, 3)); // 只取前 3 張
       } catch (error) {
-        console.error('Error loading latest posts:', error);
+        console.error('Error loading content:', error);
         // 如果載入失敗，顯示錯誤狀態
         setLatestPosts([]);
+        setActivityImages([]);
       } finally {
         setLoading(false);
       }
     };
 
-    loadLatestPosts();
+    loadContent();
   }, []);
 
   return (
@@ -77,23 +85,36 @@ export default function Home() {
       <section className="px-6 py-24">
         <h2 className="text-4xl font-bold text-center mb-10">活動照片</h2>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-          <img
-            src="/activity1.png"
-            alt="活動照片 1"
-            className="h-64 w-full object-cover rounded-xl shadow-md"
-          />
-          <img
-            src="/activity2.png"
-            alt="活動照片 2"
-            className="h-64 w-full object-cover rounded-xl shadow-md"
-          />
-          <img
-            src="/activity3.png"
-            alt="活動照片 3"
-            className="h-64 w-full object-cover rounded-xl shadow-md"
-          />
-        </div>
+        {activityImages.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+            {activityImages.map((image) => (
+              <img
+                key={image.id}
+                src={image.url}
+                alt={image.alt}
+                className="h-64 w-full object-cover rounded-xl shadow-md"
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+            <img
+              src="/activity1.png"
+              alt="活動照片 1"
+              className="h-64 w-full object-cover rounded-xl shadow-md"
+            />
+            <img
+              src="/activity2.png"
+              alt="活動照片 2"
+              className="h-64 w-full object-cover rounded-xl shadow-md"
+            />
+            <img
+              src="/activity3.png"
+              alt="活動照片 3"
+              className="h-64 w-full object-cover rounded-xl shadow-md"
+            />
+          </div>
+        )}
       </section>
 
       {/* Blog Preview Section */}
