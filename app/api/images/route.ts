@@ -1,40 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyRequestAuth, getSecurityHeaders, checkRateLimit, getClientIP } from '@/app/lib/security';
 import { SiteImage, defaultImages } from '@/app/lib/imageManager';
-import fs from 'fs/promises';
-import path from 'path';
-
-// 圖片資料檔案路徑
-const IMAGES_FILE = path.join(process.cwd(), 'data', 'site-images.json');
-
-// 確保資料目錄存在
-async function ensureDataDirectory() {
-  const dataDir = path.dirname(IMAGES_FILE);
-  try {
-    await fs.access(dataDir);
-  } catch {
-    await fs.mkdir(dataDir, { recursive: true });
-  }
-}
-
-// 讀取圖片資料
-async function loadImages(): Promise<SiteImage[]> {
-  try {
-    await ensureDataDirectory();
-    const data = await fs.readFile(IMAGES_FILE, 'utf8');
-    return JSON.parse(data);
-  } catch (error) {
-    // 如果檔案不存在，建立預設資料
-    await saveImages(defaultImages);
-    return defaultImages;
-  }
-}
-
-// 儲存圖片資料
-async function saveImages(images: SiteImage[]): Promise<void> {
-  await ensureDataDirectory();
-  await fs.writeFile(IMAGES_FILE, JSON.stringify(images, null, 2), 'utf8');
-}
+import { getAllImagesFromDB, saveImagesToDB, addImageToDB } from '@/app/lib/database';
 
 // 獲取所有圖片
 export async function GET(request: NextRequest) {
@@ -48,14 +15,22 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const images = await loadImages();
+    let images = await getAllImagesFromDB();
+    
+    // 如果沒有圖片，初始化預設圖片
+    if (images.length === 0) {
+      console.log('No images found, initializing with default images');
+      for (const defaultImage of defaultImages) {
+        await addImageToDB(defaultImage);
+      }
+      images = await getAllImagesFromDB();
+    }
+    
     return NextResponse.json(images, { headers: getSecurityHeaders() });
   } catch (error) {
     console.error('Error reading images:', error);
-    return NextResponse.json(
-      { error: 'Failed to read images' },
-      { status: 500, headers: getSecurityHeaders() }
-    );
+    // 如果資料庫讀取失敗，返回預設圖片
+    return NextResponse.json(defaultImages, { headers: getSecurityHeaders() });
   }
 }
 
@@ -90,11 +65,16 @@ export async function POST(request: NextRequest) {
       updatedAt: new Date().toISOString(),
     };
 
-    const images = await loadImages();
-    images.push(newImage);
-    await saveImages(images);
-
-    return NextResponse.json(newImage, { headers: getSecurityHeaders() });
+    const savedImage = await addImageToDB(newImage);
+    
+    if (savedImage) {
+      return NextResponse.json(savedImage, { headers: getSecurityHeaders() });
+    } else {
+      return NextResponse.json(
+        { error: 'Failed to add image' },
+        { status: 500, headers: getSecurityHeaders() }
+      );
+    }
   } catch (error) {
     console.error('Error adding image:', error);
     return NextResponse.json(

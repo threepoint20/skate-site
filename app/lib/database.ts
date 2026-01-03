@@ -1,5 +1,6 @@
 // 資料庫適配器 - 支援本地檔案系統、Vercel KV 和 Neon PostgreSQL
 import { BlogPost } from './blogData';
+import { SiteImage } from './imageManager';
 import fs from 'fs';
 import path from 'path';
 
@@ -8,6 +9,7 @@ const isProduction = process.env.NODE_ENV === 'production';
 
 // 本地檔案路徑
 const DATA_FILE = path.join(process.cwd(), 'data', 'blog-posts.json');
+const IMAGES_FILE = path.join(process.cwd(), 'data', 'site-images.json');
 
 // 資料庫類型檢測
 const getDatabaseType = () => {
@@ -289,5 +291,204 @@ export async function getDatabaseStatus(): Promise<{
       available: false,
       postCount: 0
     };
+  }
+}
+
+// ==================== 圖片管理功能 ====================
+
+// 轉換 Neon 圖片資料到 SiteImage 格式
+function convertNeonToSiteImage(neonImage: any): SiteImage {
+  return {
+    id: neonImage.imageId,
+    name: neonImage.name,
+    description: neonImage.description || '',
+    url: neonImage.url,
+    category: neonImage.category,
+    alt: neonImage.alt,
+    order: neonImage.order || 0,
+    createdAt: neonImage.createdAt?.toISOString() || new Date().toISOString(),
+    updatedAt: neonImage.updatedAt?.toISOString() || new Date().toISOString(),
+  };
+}
+
+// 轉換 SiteImage 到 Neon 格式
+function convertSiteImageToNeon(image: SiteImage): any {
+  return {
+    imageId: image.id,
+    name: image.name,
+    description: image.description,
+    url: image.url,
+    category: image.category,
+    alt: image.alt,
+    order: image.order || 0,
+  };
+}
+
+// 讀取所有圖片
+export async function getAllImagesFromDB(): Promise<SiteImage[]> {
+  try {
+    const dbType = getDatabaseType();
+    
+    if (dbType === 'neon') {
+      await initDatabase();
+      const { desc } = await import('drizzle-orm');
+      const { siteImages } = await import('./schema');
+      
+      const images = await neonDb.select().from(siteImages).orderBy(desc(siteImages.id));
+      return images.map(convertNeonToSiteImage);
+    } else if (dbType === 'kv') {
+      await initDatabase();
+      const images = await kv.get('site-images');
+      return images || [];
+    } else {
+      // 檔案系統
+      ensureDataDirectory();
+      
+      if (!fs.existsSync(IMAGES_FILE)) {
+        return [];
+      }
+      
+      const data = fs.readFileSync(IMAGES_FILE, 'utf8');
+      return JSON.parse(data);
+    }
+  } catch (error) {
+    console.error('Error reading images from database:', error);
+    return [];
+  }
+}
+
+// 儲存所有圖片
+export async function saveImagesToDB(images: SiteImage[]): Promise<boolean> {
+  try {
+    const dbType = getDatabaseType();
+    
+    if (dbType === 'neon') {
+      // Neon 不支援批量替換，需要個別處理
+      console.warn('Neon database: Use individual CRUD operations instead of bulk save');
+      return true;
+    } else if (dbType === 'kv') {
+      await initDatabase();
+      await kv.set('site-images', images);
+      return true;
+    } else {
+      // 檔案系統
+      ensureDataDirectory();
+      fs.writeFileSync(IMAGES_FILE, JSON.stringify(images, null, 2), 'utf8');
+      return true;
+    }
+  } catch (error) {
+    console.error('Error saving images to database:', error);
+    return false;
+  }
+}
+
+// 根據 ID 獲取單張圖片
+export async function getImageByIdFromDB(imageId: string): Promise<SiteImage | null> {
+  try {
+    const dbType = getDatabaseType();
+    
+    if (dbType === 'neon') {
+      await initDatabase();
+      const { eq } = await import('drizzle-orm');
+      const { siteImages } = await import('./schema');
+      
+      const images = await neonDb.select().from(siteImages).where(eq(siteImages.imageId, imageId));
+      return images.length > 0 ? convertNeonToSiteImage(images[0]) : null;
+    } else {
+      const images = await getAllImagesFromDB();
+      return images.find(image => image.id === imageId) || null;
+    }
+  } catch (error) {
+    console.error('Error getting image by ID:', error);
+    return null;
+  }
+}
+
+// 新增圖片
+export async function addImageToDB(image: SiteImage): Promise<SiteImage | null> {
+  try {
+    const dbType = getDatabaseType();
+    
+    if (dbType === 'neon') {
+      await initDatabase();
+      const { siteImages } = await import('./schema');
+      
+      const newImageData = convertSiteImageToNeon(image);
+      const insertedImages = await neonDb.insert(siteImages).values(newImageData).returning();
+      
+      return insertedImages.length > 0 ? convertNeonToSiteImage(insertedImages[0]) : null;
+    } else {
+      // KV 或檔案系統：使用現有邏輯
+      const images = await getAllImagesFromDB();
+      images.push(image);
+      const success = await saveImagesToDB(images);
+      return success ? image : null;
+    }
+  } catch (error) {
+    console.error('Error adding image:', error);
+    return null;
+  }
+}
+
+// 更新單張圖片
+export async function updateImageInDB(imageId: string, updates: Partial<SiteImage>): Promise<boolean> {
+  try {
+    const dbType = getDatabaseType();
+    
+    if (dbType === 'neon') {
+      await initDatabase();
+      const { eq } = await import('drizzle-orm');
+      const { siteImages } = await import('./schema');
+      
+      const updateData = convertSiteImageToNeon(updates as SiteImage);
+      delete updateData.imageId; // 不更新 imageId
+      
+      const result = await neonDb.update(siteImages)
+        .set({ ...updateData, updatedAt: new Date() })
+        .where(eq(siteImages.imageId, imageId));
+      
+      return result.rowCount > 0;
+    } else {
+      const images = await getAllImagesFromDB();
+      const imageIndex = images.findIndex(image => image.id === imageId);
+      
+      if (imageIndex === -1) {
+        return false;
+      }
+      
+      images[imageIndex] = { ...images[imageIndex], ...updates, updatedAt: new Date().toISOString() };
+      return await saveImagesToDB(images);
+    }
+  } catch (error) {
+    console.error('Error updating image:', error);
+    return false;
+  }
+}
+
+// 刪除單張圖片
+export async function deleteImageFromDB(imageId: string): Promise<boolean> {
+  try {
+    const dbType = getDatabaseType();
+    
+    if (dbType === 'neon') {
+      await initDatabase();
+      const { eq } = await import('drizzle-orm');
+      const { siteImages } = await import('./schema');
+      
+      const result = await neonDb.delete(siteImages).where(eq(siteImages.imageId, imageId));
+      return result.rowCount > 0;
+    } else {
+      const images = await getAllImagesFromDB();
+      const filteredImages = images.filter(image => image.id !== imageId);
+      
+      if (filteredImages.length === images.length) {
+        return false; // 圖片不存在
+      }
+      
+      return await saveImagesToDB(filteredImages);
+    }
+  } catch (error) {
+    console.error('Error deleting image:', error);
+    return false;
   }
 }

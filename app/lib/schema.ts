@@ -20,5 +20,21 @@ export const blogPosts = pgTable('blog_posts', {
   updatedAt: timestamp('updated_at').defaultNow(),
 });
 
+// 網站圖片表
+export const siteImages = pgTable('site_images', {
+  id: serial('id').primaryKey(),
+  imageId: text('image_id').notNull().unique(), // 自訂的圖片 ID
+  name: text('name').notNull(),
+  description: text('description'),
+  url: text('url').notNull(),
+  category: text('category').notNull(), // activity, hero, about, equipment, general
+  alt: text('alt').notNull(),
+  order: integer('order').default(0),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
 export type BlogPost = typeof blogPosts.$inferSelect;
 export type NewBlogPost = typeof blogPosts.$inferInsert;
+export type SiteImageDB = typeof siteImages.$inferSelect;
+export type NewSiteImageDB = typeof siteImages.$inferInsert;
