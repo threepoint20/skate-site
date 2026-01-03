@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { getImagesByCategory, SiteImage } from '../lib/imageManager';
+import PageHero from '../components/PageHero';
 
 export default function Equipment() {
   const [equipmentImages, setEquipmentImages] = useState<SiteImage[]>([]);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const loadImages = async () => {
@@ -16,8 +16,6 @@ export default function Equipment() {
       } catch (error) {
         console.error('Error loading equipment images:', error);
         setEquipmentImages([]);
-      } finally {
-        setLoading(false);
       }
     };
 
@@ -28,17 +26,16 @@ export default function Equipment() {
   const getImageByName = (name: string) => {
     return equipmentImages.find(img => img.name.toLowerCase().includes(name.toLowerCase()));
   };
+  
   return (
     <main className="min-h-screen bg-background text-foreground">
       {/* Hero Section */}
-      <section className="px-6 py-24 text-center bg-gradient-to-r from-orange-500 to-red-600 text-white">
-        <h1 className="text-5xl md:text-6xl font-bold tracking-tight">
-          滑板裝備
-        </h1>
-        <p className="mt-6 text-lg md:text-xl max-w-3xl mx-auto">
-          了解滑板的各個組件，選擇最適合你的裝備
-        </p>
-      </section>
+      <PageHero
+        title="滑板裝備"
+        subtitle="了解滑板的各個組件，選擇最適合你的裝備"
+        category="hero-equipment"
+        defaultGradient="from-orange-500 to-red-600"
+      />
 
       {/* Skateboard Anatomy */}
       <section className="px-6 py-24">

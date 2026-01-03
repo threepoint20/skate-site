@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { getAllPosts, BlogPost } from '../lib/blogData';
 import { useAuth } from '../lib/auth';
+import PageHero from '../components/PageHero';
 
 export default function Blog() {
   const [selectedCategory, setSelectedCategory] = useState("全部");
@@ -42,14 +43,12 @@ export default function Blog() {
   return (
     <main className="min-h-screen bg-background text-foreground">
       {/* Hero Section */}
-      <section className="px-6 py-24 text-center bg-gradient-to-r from-green-600 to-blue-600 text-white">
-        <h1 className="text-5xl md:text-6xl font-bold tracking-tight">
-          滑板部落格
-        </h1>
-        <p className="mt-6 text-lg md:text-xl max-w-3xl mx-auto">
-          分享滑板知識、技巧教學和文化故事
-        </p>
-        
+      <PageHero
+        title="滑板部落格"
+        subtitle="分享滑板知識、技巧教學和文化故事"
+        category="hero-blog"
+        defaultGradient="from-green-600 to-blue-600"
+      >
         {/* 管理員功能按鈕 */}
         {hasPermission('create_posts') && (
           <div className="mt-8 flex justify-center gap-4">
@@ -67,7 +66,7 @@ export default function Blog() {
             </Link>
           </div>
         )}
-      </section>
+      </PageHero>
 
       {/* Categories Filter */}
       <section className="px-6 py-12 bg-gray-50">

@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { getImagesByCategory, SiteImage } from '../lib/imageManager';
+import PageHero from '../components/PageHero';
 
 export default function About() {
   const [aboutImages, setAboutImages] = useState<SiteImage[]>([]);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const loadImages = async () => {
@@ -16,8 +16,6 @@ export default function About() {
       } catch (error) {
         console.error('Error loading about images:', error);
         setAboutImages([]);
-      } finally {
-        setLoading(false);
       }
     };
 
@@ -28,17 +26,16 @@ export default function About() {
   const getImageByName = (name: string) => {
     return aboutImages.find(img => img.name.toLowerCase().includes(name.toLowerCase()));
   };
+  
   return (
     <main className="min-h-screen bg-background text-foreground">
       {/* Hero Section */}
-      <section className="px-6 py-24 text-center bg-gray-900 text-white">
-        <h1 className="text-5xl md:text-6xl font-bold tracking-tight">
-          關於我們
-        </h1>
-        <p className="mt-6 text-lg md:text-xl max-w-3xl mx-auto text-gray-300">
-          我們致力於推廣滑板文化，建立一個包容、友善的滑板社群
-        </p>
-      </section>
+      <PageHero
+        title="關於我們"
+        subtitle="我們致力於推廣滑板文化，建立一個包容、友善的滑板社群"
+        category="hero-about"
+        defaultGradient="from-gray-900 to-gray-700"
+      />
 
       {/* Story Section */}
       <section className="px-6 py-24">

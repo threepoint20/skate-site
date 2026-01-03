@@ -4,7 +4,7 @@ export interface SiteImage {
   name: string;
   description: string;
   url: string;
-  category: 'activity' | 'hero' | 'about' | 'equipment' | 'general';
+  category: 'activity' | 'hero' | 'hero-about' | 'hero-guides' | 'hero-equipment' | 'hero-contact' | 'hero-blog' | 'about' | 'equipment' | 'general';
   alt: string;
   order?: number;
   createdAt: string;
@@ -52,6 +52,11 @@ export const defaultImages: SiteImage[] = [
 export const imageCategories = {
   activity: '活動照片',
   hero: '首頁橫幅',
+  'hero-about': '關於我們橫幅',
+  'hero-guides': '滑板指南橫幅',
+  'hero-equipment': '滑板裝備橫幅',
+  'hero-contact': '聯絡我們橫幅',
+  'hero-blog': '部落格橫幅',
   about: '關於我們',
   equipment: '裝備介紹',
   general: '一般圖片',

@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { getImagesByCategory, SiteImage } from '../lib/imageManager';
+import PageHero from '../components/PageHero';
 
 export default function Guides() {
   const [generalImages, setGeneralImages] = useState<SiteImage[]>([]);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const loadImages = async () => {
@@ -16,8 +16,6 @@ export default function Guides() {
       } catch (error) {
         console.error('Error loading general images:', error);
         setGeneralImages([]);
-      } finally {
-        setLoading(false);
       }
     };
 
@@ -28,17 +26,16 @@ export default function Guides() {
   const getImageByName = (name: string) => {
     return generalImages.find(img => img.name.toLowerCase().includes(name.toLowerCase()));
   };
+  
   return (
     <main className="min-h-screen bg-background text-foreground">
       {/* Hero Section */}
-      <section className="px-6 py-24 text-center bg-gradient-to-r from-blue-600 to-purple-600 text-white">
-        <h1 className="text-5xl md:text-6xl font-bold tracking-tight">
-          滑板指南
-        </h1>
-        <p className="mt-6 text-lg md:text-xl max-w-3xl mx-auto">
-          從基礎到進階，完整的滑板學習資源
-        </p>
-      </section>
+      <PageHero
+        title="滑板指南"
+        subtitle="從基礎到進階，完整的滑板學習資源"
+        category="hero-guides"
+        defaultGradient="from-blue-600 to-purple-600"
+      />
 
       {/* Beginner Guide */}
       <section className="px-6 py-24">

@@ -1,15 +1,17 @@
+'use client';
+
+import PageHero from '../components/PageHero';
+
 export default function Contact() {
   return (
     <main className="min-h-screen bg-background text-foreground">
       {/* Hero Section */}
-      <section className="px-6 py-24 text-center bg-gradient-to-r from-purple-600 to-pink-600 text-white">
-        <h1 className="text-5xl md:text-6xl font-bold tracking-tight">
-          聯絡我們
-        </h1>
-        <p className="mt-6 text-lg md:text-xl max-w-3xl mx-auto">
-          有任何問題或建議？我們很樂意聽到您的聲音
-        </p>
-      </section>
+      <PageHero
+        title="聯絡我們"
+        subtitle="有任何問題或建議？我們很樂意聽到您的聲音"
+        category="hero-contact"
+        defaultGradient="from-purple-600 to-pink-600"
+      />
 
       {/* Contact Form & Info */}
       <section className="px-6 py-24">
