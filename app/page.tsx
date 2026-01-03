@@ -8,6 +8,7 @@ import { getImagesByCategory, SiteImage } from './lib/imageManager';
 export default function Home() {
   const [latestPosts, setLatestPosts] = useState<BlogPost[]>([]);
   const [activityImages, setActivityImages] = useState<SiteImage[]>([]);
+  const [heroImages, setHeroImages] = useState<SiteImage[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -29,11 +30,17 @@ export default function Home() {
         const images = await getImagesByCategory('activity');
         console.log('Loaded activity images:', images.length);
         setActivityImages(images.slice(0, 3)); // 只取前 3 張
+
+        // 載入首頁橫幅圖片
+        const heroImgs = await getImagesByCategory('hero');
+        console.log('Loaded hero images:', heroImgs.length);
+        setHeroImages(heroImgs.slice(0, 1)); // 只取第一張作為背景
       } catch (error) {
         console.error('Error loading content:', error);
         // 如果載入失敗，顯示錯誤狀態
         setLatestPosts([]);
         setActivityImages([]);
+        setHeroImages([]);
       } finally {
         setLoading(false);
       }
@@ -45,27 +52,45 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-background text-foreground">
       {/* Hero Section */}
-      <section className="px-6 py-32 text-center">
-        <h1 className="text-5xl md:text-7xl font-bold tracking-tight">
-          Skate like a Fairy/Superman
-        </h1>
-        <p className="mt-6 text-lg md:text-xl max-w-2xl mx-auto text-gray-500">
-          推廣滑板文化、社群活動與教育，打造更友善、更包容的滑板環境。
-        </p>
+      <section 
+        className="px-6 py-32 text-center relative"
+        style={heroImages.length > 0 ? {
+          backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)), url(${heroImages[0].url})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat'
+        } : {}}
+      >
+        <div className={heroImages.length > 0 ? 'relative z-10' : ''}>
+          <h1 className={`text-5xl md:text-7xl font-bold tracking-tight ${heroImages.length > 0 ? 'text-white' : ''}`}>
+            Skate like a Fairy/Superman
+          </h1>
+          <p className={`mt-6 text-lg md:text-xl max-w-2xl mx-auto ${heroImages.length > 0 ? 'text-gray-200' : 'text-gray-500'}`}>
+            推廣滑板文化、社群活動與教育，打造更友善、更包容的滑板環境。
+          </p>
 
-        <div className="mt-10 flex justify-center gap-4">
-          <a
-            href="/about"
-            className="px-6 py-3 bg-black text-white rounded-lg text-lg font-semibold hover:opacity-80 transition"
-          >
-            認識我們
-          </a>
-          <a
-            href="/guides"
-            className="px-6 py-3 border border-black rounded-lg text-lg font-semibold hover:bg-black hover:text-white transition"
-          >
-            滑板指南
-          </a>
+          <div className="mt-10 flex justify-center gap-4">
+            <a
+              href="/about"
+              className={`px-6 py-3 rounded-lg text-lg font-semibold transition ${
+                heroImages.length > 0 
+                  ? 'bg-white text-black hover:bg-gray-100' 
+                  : 'bg-black text-white hover:opacity-80'
+              }`}
+            >
+              認識我們
+            </a>
+            <a
+              href="/guides"
+              className={`px-6 py-3 border rounded-lg text-lg font-semibold transition ${
+                heroImages.length > 0
+                  ? 'border-white text-white hover:bg-white hover:text-black'
+                  : 'border-black hover:bg-black hover:text-white'
+              }`}
+            >
+              滑板指南
+            </a>
+          </div>
         </div>
       </section>
 

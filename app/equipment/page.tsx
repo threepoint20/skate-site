@@ -1,4 +1,33 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { getImagesByCategory, SiteImage } from '../lib/imageManager';
+
 export default function Equipment() {
+  const [equipmentImages, setEquipmentImages] = useState<SiteImage[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadImages = async () => {
+      try {
+        const images = await getImagesByCategory('equipment');
+        console.log('Loaded equipment images:', images.length);
+        setEquipmentImages(images);
+      } catch (error) {
+        console.error('Error loading equipment images:', error);
+        setEquipmentImages([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadImages();
+  }, []);
+
+  // 取得特定用途的圖片
+  const getImageByName = (name: string) => {
+    return equipmentImages.find(img => img.name.toLowerCase().includes(name.toLowerCase()));
+  };
   return (
     <main className="min-h-screen bg-background text-foreground">
       {/* Hero Section */}
@@ -18,8 +47,16 @@ export default function Equipment() {
           
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <div>
-              <div className="w-full h-64 bg-gray-200 rounded-lg flex items-center justify-center">
-                <span className="text-gray-500 text-lg">滑板構造圖</span>
+              <div className="w-full h-64 bg-gray-200 rounded-lg flex items-center justify-center overflow-hidden">
+                {getImageByName('構造') || getImageByName('滑板') || equipmentImages[0] ? (
+                  <img
+                    src={(getImageByName('構造') || getImageByName('滑板') || equipmentImages[0])!.url}
+                    alt="滑板構造圖"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <span className="text-gray-500 text-lg">滑板構造圖</span>
+                )}
               </div>
             </div>
             

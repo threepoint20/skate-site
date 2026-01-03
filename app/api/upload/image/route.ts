@@ -3,6 +3,11 @@ import { writeFile, mkdir } from 'fs/promises';
 import path from 'path';
 import { verifyRequestAuth, getSecurityHeaders, checkRateLimit, getClientIP } from '@/app/lib/security';
 
+// Route segment config - 設定檔案上傳限制
+export const runtime = 'nodejs';
+export const maxDuration = 30; // 30 秒超時
+export const dynamic = 'force-dynamic';
+
 // 允許的圖片類型
 const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB

@@ -1,4 +1,33 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { getImagesByCategory, SiteImage } from '../lib/imageManager';
+
 export default function About() {
+  const [aboutImages, setAboutImages] = useState<SiteImage[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadImages = async () => {
+      try {
+        const images = await getImagesByCategory('about');
+        console.log('Loaded about images:', images.length);
+        setAboutImages(images);
+      } catch (error) {
+        console.error('Error loading about images:', error);
+        setAboutImages([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadImages();
+  }, []);
+
+  // 取得特定用途的圖片
+  const getImageByName = (name: string) => {
+    return aboutImages.find(img => img.name.toLowerCase().includes(name.toLowerCase()));
+  };
   return (
     <main className="min-h-screen bg-background text-foreground">
       {/* Hero Section */}
@@ -72,7 +101,19 @@ export default function About() {
           <h2 className="text-4xl font-bold text-center mb-12">核心團隊</h2>
           <div className="grid md:grid-cols-3 gap-8">
             <div className="text-center">
-              <div className="w-32 h-32 bg-gray-300 rounded-full mx-auto mb-4"></div>
+              <div className="w-32 h-32 bg-gray-300 rounded-full mx-auto mb-4 overflow-hidden">
+                {getImageByName('alex') || getImageByName('創辦人') || getImageByName('主教練') ? (
+                  <img
+                    src={(getImageByName('alex') || getImageByName('創辦人') || getImageByName('主教練'))!.url}
+                    alt="Alex Chen"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gray-300 flex items-center justify-center">
+                    <span className="text-gray-500 text-sm">Alex</span>
+                  </div>
+                )}
+              </div>
               <h3 className="text-xl font-semibold">Alex Chen</h3>
               <p className="text-gray-600">創辦人 & 主教練</p>
               <p className="mt-2 text-sm text-gray-500">
@@ -80,7 +121,19 @@ export default function About() {
               </p>
             </div>
             <div className="text-center">
-              <div className="w-32 h-32 bg-gray-300 rounded-full mx-auto mb-4"></div>
+              <div className="w-32 h-32 bg-gray-300 rounded-full mx-auto mb-4 overflow-hidden">
+                {getImageByName('sarah') || getImageByName('活動策劃') ? (
+                  <img
+                    src={(getImageByName('sarah') || getImageByName('活動策劃'))!.url}
+                    alt="Sarah Lin"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gray-300 flex items-center justify-center">
+                    <span className="text-gray-500 text-sm">Sarah</span>
+                  </div>
+                )}
+              </div>
               <h3 className="text-xl font-semibold">Sarah Lin</h3>
               <p className="text-gray-600">活動策劃</p>
               <p className="mt-2 text-sm text-gray-500">
@@ -88,7 +141,19 @@ export default function About() {
               </p>
             </div>
             <div className="text-center">
-              <div className="w-32 h-32 bg-gray-300 rounded-full mx-auto mb-4"></div>
+              <div className="w-32 h-32 bg-gray-300 rounded-full mx-auto mb-4 overflow-hidden">
+                {getImageByName('mike') || getImageByName('技術指導') ? (
+                  <img
+                    src={(getImageByName('mike') || getImageByName('技術指導'))!.url}
+                    alt="Mike Wang"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gray-300 flex items-center justify-center">
+                    <span className="text-gray-500 text-sm">Mike</span>
+                  </div>
+                )}
+              </div>
               <h3 className="text-xl font-semibold">Mike Wang</h3>
               <p className="text-gray-600">技術指導</p>
               <p className="mt-2 text-sm text-gray-500">

@@ -21,6 +21,7 @@
     "dotenv": "^17.2.3",
     "drizzle-kit": "^0.31.8",
     "drizzle-orm": "^0.45.1",
+    "formdata-node": "^6.0.3",
     "jsonwebtoken": "^9.0.3",
     "next": "16.1.1",
     "react": "19.2.3",

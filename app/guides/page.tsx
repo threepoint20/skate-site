@@ -1,4 +1,33 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { getImagesByCategory, SiteImage } from '../lib/imageManager';
+
 export default function Guides() {
+  const [generalImages, setGeneralImages] = useState<SiteImage[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadImages = async () => {
+      try {
+        const images = await getImagesByCategory('general');
+        console.log('Loaded general images for guides:', images.length);
+        setGeneralImages(images);
+      } catch (error) {
+        console.error('Error loading general images:', error);
+        setGeneralImages([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadImages();
+  }, []);
+
+  // 取得特定用途的圖片
+  const getImageByName = (name: string) => {
+    return generalImages.find(img => img.name.toLowerCase().includes(name.toLowerCase()));
+  };
   return (
     <main className="min-h-screen bg-background text-foreground">
       {/* Hero Section */}
