@@ -1,11 +1,13 @@
 export default function StructuredData() {
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://your-domain.com';
+  
   const structuredData = {
     "@context": "https://schema.org",
     "@type": "Organization",
     "name": "SkateInfo",
     "description": "推廣滑板文化、社群活動與教育，打造更友善、更包容的滑板環境",
-    "url": "https://your-domain.com", // 請替換為你的實際域名
-    "logo": "https://your-domain.com/logo.png", // 請替換為你的 logo URL
+    "url": baseUrl,
+    "logo": `${baseUrl}/logo.png`,
     "sameAs": [
       // 如果有社群媒體，可以加入
       // "https://www.facebook.com/your-page",

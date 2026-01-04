@@ -7,6 +7,7 @@ export interface BlogPost {
   content: string;
   excerpt: string;
   date: string;
+  updatedAt?: string; // 新增更新時間欄位
   category: string;
   readTime: string;
   author: string;

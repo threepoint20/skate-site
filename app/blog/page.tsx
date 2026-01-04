@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { getAllPosts, BlogPost } from '../lib/blogData';
 import { useAuth } from '../lib/auth';
 import PageHero from '../components/PageHero';
+import BlogListingStructuredData from '../components/BlogListingStructuredData';
 
 export default function Blog() {
   const [selectedCategory, setSelectedCategory] = useState("全部");
@@ -41,7 +42,11 @@ export default function Blog() {
   }
 
   return (
-    <main className="min-h-screen bg-background text-foreground">
+    <>
+      {/* SEO 結構化資料 */}
+      <BlogListingStructuredData posts={blogPosts} />
+      
+      <main className="min-h-screen bg-background text-foreground">
       {/* Hero Section */}
       <PageHero
         title="滑板部落格"
@@ -254,5 +259,6 @@ export default function Blog() {
         </div>
       </section>
     </main>
+    </>
   );
 }

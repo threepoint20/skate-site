@@ -6,6 +6,7 @@ import { notFound } from 'next/navigation';
 import { getPostBySlug, updatePost, getAllPosts, incrementViews, BlogPost } from '../../lib/blogData';
 import { useAuth } from '../../lib/auth';
 import ImageUpload from '../../components/ImageUpload';
+import ArticleStructuredData from '../../components/ArticleStructuredData';
 
 interface BlogPostPageProps {
   // Next.js 15 中 params 是 Promise
@@ -117,7 +118,11 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
 
   // 6. 最終 UI 渲染
   return (
-    <main className="min-h-screen bg-background text-foreground">
+    <>
+      {/* SEO 結構化資料 */}
+      <ArticleStructuredData post={post} />
+      
+      <main className="min-h-screen bg-background text-foreground">
       {/* Header */}
       <section className="px-6 py-12 bg-gray-50">
         <div className="max-w-4xl mx-auto">
@@ -291,5 +296,6 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
         </section>
       )}
     </main>
+    </>
   );
 }

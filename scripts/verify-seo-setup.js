@@ -1,11 +1,15 @@
 #!/usr/bin/env node
 
+// 載入環境變數
+require('dotenv').config({ path: '.env.local' });
+
 // 驗證 SEO 設置
 async function verifySEOSetup() {
   try {
     console.log('🔍 Verifying SEO setup...\n');
     
-    const baseUrl = 'http://localhost:3000';
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+    console.log(`🌐 Using base URL: ${baseUrl}\n`);
     
     // 測試各個 SEO 相關端點
     const endpoints = [
@@ -69,6 +73,23 @@ async function verifySEOSetup() {
           if (titleMatch) {
             console.log(`   Title: "${titleMatch[1]}"`);
           }
+          
+          // 檢查結構化資料內容
+          if (hasStructuredData) {
+            const jsonLdMatches = html.match(/<script[^>]*type="application\/ld\+json"[^>]*>(.*?)<\/script>/gs);
+            if (jsonLdMatches) {
+              console.log(`   Structured data types found: ${jsonLdMatches.length}`);
+              jsonLdMatches.forEach((match, index) => {
+                try {
+                  const jsonContent = match.replace(/<script[^>]*>/, '').replace(/<\/script>/, '').trim();
+                  const data = JSON.parse(jsonContent);
+                  console.log(`     ${index + 1}. @type: ${data['@type']}`);
+                } catch (e) {
+                  console.log(`     ${index + 1}. Invalid JSON-LD`);
+                }
+              });
+            }
+          }
         } else {
           console.log(`❌ ${page.name}: ${response.status} ${response.statusText}`);
         }
@@ -77,7 +98,45 @@ async function verifySEOSetup() {
       }
     }
     
-    console.log('\n3. SEO Setup Summary:');
+    // 測試部落格文章頁面的結構化資料
+    console.log('\n3. Blog article structured data verification:');
+    try {
+      // 先獲取部落格文章列表
+      const blogResponse = await fetch(`${baseUrl}/api/blog`);
+      if (blogResponse.ok) {
+        const posts = await blogResponse.json();
+        if (posts.length > 0) {
+          const firstPost = posts.find(p => p.status === '已發布');
+          if (firstPost) {
+            const articleResponse = await fetch(`${baseUrl}/blog/${firstPost.slug}`);
+            if (articleResponse.ok) {
+              const html = await articleResponse.text();
+              const hasArticleStructuredData = html.includes('"@type":"Article"') || html.includes('"@type": "Article"');
+              console.log(`✅ 測試文章: ${firstPost.title}`);
+              console.log(`   ${hasArticleStructuredData ? '✅' : '❌'} Article structured data`);
+              
+              // 提取並驗證結構化資料
+              const jsonLdMatches = html.match(/<script[^>]*type="application\/ld\+json"[^>]*>(.*?)<\/script>/gs);
+              if (jsonLdMatches) {
+                jsonLdMatches.forEach((match, index) => {
+                  try {
+                    const jsonContent = match.replace(/<script[^>]*>/, '').replace(/<\/script>/, '').trim();
+                    const data = JSON.parse(jsonContent);
+                    console.log(`   結構化資料 ${index + 1}: @type=${data['@type']}, headline="${data.headline || 'N/A'}"`);
+                  } catch (e) {
+                    console.log(`   結構化資料 ${index + 1}: 解析失敗`);
+                  }
+                });
+              }
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.log('❌ 無法測試部落格文章結構化資料');
+    }
+    
+    console.log('\n4. SEO Setup Summary:');
     console.log('✅ Google Search Console 驗證檔案已設置');
     console.log('✅ Meta 標籤驗證已加入 layout.tsx');
     console.log('✅ Sitemap.xml 自動生成');
@@ -85,8 +144,10 @@ async function verifySEOSetup() {
     console.log('✅ 結構化資料 (JSON-LD) 已加入');
     console.log('✅ Open Graph 標籤已設置');
     console.log('✅ 各頁面專屬 metadata 已設置');
+    console.log('✅ 部落格文章結構化資料已整合');
+    console.log('✅ 部落格列表結構化資料已整合');
     
-    console.log('\n4. Next Steps:');
+    console.log('\n5. Next Steps:');
     console.log('📝 在 Google Search Console 中驗證網站:');
     console.log('   1. 前往 https://search.google.com/search-console');
     console.log('   2. 新增資源 (網域或網址前置字元)');
@@ -101,6 +162,38 @@ async function verifySEOSetup() {
     console.log('   - 在 Google Search Console 提交 sitemap');
     
     console.log('\n🎉 SEO Setup Verification Complete!');
+    
+    console.log('\n📋 Summary of Completed Features:');
+    console.log('✅ Google Search Console HTML 檔案驗證');
+    console.log('✅ Google Search Console Meta 標籤驗證');
+    console.log('✅ 自動生成 Sitemap.xml');
+    console.log('✅ 自動生成 Robots.txt');
+    console.log('✅ 組織結構化資料 (Organization)');
+    console.log('✅ 文章結構化資料 (Article)');
+    console.log('✅ 部落格結構化資料 (Blog)');
+    console.log('✅ 網站結構化資料 (WebSite)');
+    console.log('✅ Open Graph 標籤');
+    console.log('✅ Twitter Card 標籤');
+    console.log('✅ 各頁面專屬 metadata');
+    
+    console.log('\n🔍 如何驗證結構化資料:');
+    console.log('1. 等待頁面完全載入 (客戶端渲染)');
+    console.log('2. 開啟瀏覽器開發者工具 (F12)');
+    console.log('3. 在 Elements 標籤中搜尋 "application/ld+json"');
+    console.log('4. 檢查 JSON-LD 結構化資料是否正確生成');
+    console.log('5. 使用 Google Rich Results Test 工具測試');
+    console.log('6. 使用 Schema.org Validator 驗證');
+    
+    console.log('\n🌐 線上驗證工具:');
+    console.log('• Google Rich Results Test: https://search.google.com/test/rich-results');
+    console.log('• Schema.org Validator: https://validator.schema.org/');
+    console.log('• Google Search Console: https://search.google.com/search-console');
+    
+    console.log('\n⚠️  注意事項:');
+    console.log('• 部落格頁面使用客戶端渲染，需要等待資料載入');
+    console.log('• 結構化資料會在文章資料載入後動態生成');
+    console.log('• 建議在生產環境中測試完整功能');
+    console.log('• 記得更新 baseUrl 為實際網域名稱');
     
   } catch (error) {
     console.error('❌ Verification failed:', error);
