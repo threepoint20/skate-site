@@ -3,9 +3,12 @@
 import { useState, useEffect } from 'react';
 import { getImagesByCategory, SiteImage } from '../lib/imageManager';
 import PageHero from '../components/PageHero';
+import Breadcrumb from '../components/Breadcrumb';
+import { generateBreadcrumbs } from '../lib/breadcrumbs';
 
 export default function Guides() {
   const [generalImages, setGeneralImages] = useState<SiteImage[]>([]);
+  const breadcrumbs = generateBreadcrumbs('/guides');
 
   useEffect(() => {
     const loadImages = async () => {
@@ -36,6 +39,11 @@ export default function Guides() {
         category="hero-guides"
         defaultGradient="from-blue-600 to-purple-600"
       />
+
+      {/* Breadcrumb */}
+      <div className="max-w-6xl mx-auto px-6 py-4">
+        <Breadcrumb items={breadcrumbs} />
+      </div>
 
       {/* Beginner Guide */}
       <section className="px-6 py-24">

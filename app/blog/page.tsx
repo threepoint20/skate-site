@@ -6,12 +6,15 @@ import { getAllPosts, BlogPost } from '../lib/blogData';
 import { useAuth } from '../lib/auth';
 import PageHero from '../components/PageHero';
 import BlogListingStructuredData from '../components/BlogListingStructuredData';
+import Breadcrumb from '../components/Breadcrumb';
+import { generateBreadcrumbs } from '../lib/breadcrumbs';
 
 export default function Blog() {
   const [selectedCategory, setSelectedCategory] = useState("全部");
   const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
   const { hasPermission } = useAuth();
+  const breadcrumbs = generateBreadcrumbs('/blog');
 
   const categories = ["全部", "初學者指南", "技巧教學", "裝備指南", "安全指南", "文化歷史", "場地介紹"];
 
@@ -72,6 +75,11 @@ export default function Blog() {
           </div>
         )}
       </PageHero>
+
+      {/* Breadcrumb */}
+      <div className="max-w-6xl mx-auto px-6 py-4">
+        <Breadcrumb items={breadcrumbs} />
+      </div>
 
       {/* Categories Filter */}
       <section className="px-6 py-12 bg-gray-50">

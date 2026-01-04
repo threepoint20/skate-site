@@ -7,6 +7,8 @@ import { getPostBySlug, updatePost, getAllPosts, incrementViews, BlogPost } from
 import { useAuth } from '../../lib/auth';
 import ImageUpload from '../../components/ImageUpload';
 import ArticleStructuredData from '../../components/ArticleStructuredData';
+import Breadcrumb from '../../components/Breadcrumb';
+import { generateBlogPostBreadcrumbs } from '../../lib/breadcrumbs';
 
 interface BlogPostPageProps {
   // Next.js 15 中 params 是 Promise
@@ -116,7 +118,7 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
     notFound();
   }
 
-  // 6. 最終 UI 渲染
+  // 最終 UI 渲染
   return (
     <>
       {/* SEO 結構化資料 */}
@@ -129,6 +131,11 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
           <Link href="/blog" className="text-blue-600 hover:text-blue-800 mb-4 inline-block">
             ← 返回部落格
           </Link>
+          
+          {/* Breadcrumb */}
+          <div className="mb-6">
+            <Breadcrumb items={generateBlogPostBreadcrumbs(post.title)} />
+          </div>
           
           <div className="flex justify-between items-start mb-6">
             <div className="flex-1">

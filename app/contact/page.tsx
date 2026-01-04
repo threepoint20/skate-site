@@ -1,8 +1,12 @@
 'use client';
 
 import PageHero from '../components/PageHero';
+import Breadcrumb from '../components/Breadcrumb';
+import { generateBreadcrumbs } from '../lib/breadcrumbs';
 
 export default function Contact() {
+  const breadcrumbs = generateBreadcrumbs('/contact');
+
   return (
     <main className="min-h-screen bg-background text-foreground">
       {/* Hero Section */}
@@ -12,6 +16,11 @@ export default function Contact() {
         category="hero-contact"
         defaultGradient="from-purple-600 to-pink-600"
       />
+
+      {/* Breadcrumb */}
+      <div className="max-w-6xl mx-auto px-6 py-4">
+        <Breadcrumb items={breadcrumbs} />
+      </div>
 
       {/* Contact Form & Info */}
       <section className="px-6 py-24">

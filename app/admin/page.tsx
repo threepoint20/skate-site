@@ -3,9 +3,12 @@
 import { useAuth } from '../lib/auth';
 import ProtectedRoute from '../components/ProtectedRoute';
 import Link from 'next/link';
+import Breadcrumb from '../components/Breadcrumb';
+import { generateBreadcrumbs } from '../lib/breadcrumbs';
 
 function AdminDashboardContent() {
   const { user } = useAuth();
+  const breadcrumbs = generateBreadcrumbs('/admin');
 
   return (
     <main className="min-h-screen bg-background text-foreground">
@@ -21,7 +24,12 @@ function AdminDashboardContent() {
         </div>
       </section>
 
-      {/* Dashboard */}
+      {/* Breadcrumb */}
+      <div className="max-w-6xl mx-auto px-6 py-4">
+        <Breadcrumb items={breadcrumbs} />
+      </div>
+
+      {/* Dashboard Content */}
       <section className="px-6 py-12">
         <div className="max-w-6xl mx-auto">
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">

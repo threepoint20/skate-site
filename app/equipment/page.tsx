@@ -3,9 +3,12 @@
 import { useState, useEffect } from 'react';
 import { getImagesByCategory, SiteImage } from '../lib/imageManager';
 import PageHero from '../components/PageHero';
+import Breadcrumb from '../components/Breadcrumb';
+import { generateBreadcrumbs } from '../lib/breadcrumbs';
 
 export default function Equipment() {
   const [equipmentImages, setEquipmentImages] = useState<SiteImage[]>([]);
+  const breadcrumbs = generateBreadcrumbs('/equipment');
 
   useEffect(() => {
     const loadImages = async () => {
@@ -36,6 +39,11 @@ export default function Equipment() {
         category="hero-equipment"
         defaultGradient="from-orange-500 to-red-600"
       />
+
+      {/* Breadcrumb */}
+      <div className="max-w-6xl mx-auto px-6 py-4">
+        <Breadcrumb items={breadcrumbs} />
+      </div>
 
       {/* Skateboard Anatomy */}
       <section className="px-6 py-24">
