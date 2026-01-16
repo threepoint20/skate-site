@@ -89,7 +89,7 @@ export function generateBlogPostBreadcrumbs(postTitle: string): BreadcrumbItem[]
 
 // 為管理頁面生成導覽標記
 export function generateAdminBreadcrumbs(pageName: string, pageUrl?: string): BreadcrumbItem[] {
-  const breadcrumbs = [PAGE_INFO.home, PAGE_INFO.admin];
+  const breadcrumbs: BreadcrumbItem[] = [PAGE_INFO.home, PAGE_INFO.admin];
   
   if (pageName && pageUrl) {
     breadcrumbs.push({ name: pageName, url: pageUrl });
