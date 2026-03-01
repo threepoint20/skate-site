@@ -26,9 +26,7 @@ export default function PageHero({
   useEffect(() => {
     const loadHeroImage = async () => {
       try {
-        console.log(`Loading hero image for category: ${category}`);
         const images = await getImagesByCategory(category);
-        console.log(`Found ${images.length} images for ${category}`);
         
         if (images.length > 0) {
           setHeroImage(images[0]); // 使用第一張圖片

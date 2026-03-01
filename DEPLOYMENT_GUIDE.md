@@ -46,7 +46,7 @@ Install Command: npm install
 | `NEXT_PUBLIC_SITE_URL` | `https://your-app.vercel.app` | Production, Preview |
 | `NEXT_PUBLIC_SITE_NAME` | `SkateInfo` | Production, Preview |
 | `ADMIN_USERNAME` | `admin` | Production, Preview |
-| `ADMIN_PASSWORD_HASH` | `你的bcrypt雜湊` | Production, Preview |
+| `ADMIN_PASSWORD_HASH` | `你的bcrypt雜湊（不需轉義）` | Production, Preview |
 | `JWT_SECRET` | `至少32字元的密鑰` | Production, Preview |
 | `JWT_EXPIRES_IN` | `24h` | Production, Preview |
 | `DATABASE_URL` | `你的Neon資料庫URL` | Production, Preview |
@@ -143,6 +143,7 @@ A: 檢查：
 1. `ADMIN_USERNAME` 和 `ADMIN_PASSWORD_HASH` 設定
 2. `JWT_SECRET` 是否設定
 3. 使用正確的密碼
+4. **重要**：在 Vercel 設定 `ADMIN_PASSWORD_HASH` 時，直接貼上完整雜湊值（如 `$2b$12$xxx...`），不需要使用 `\$` 轉義。轉義只在本地 `.env.local` 檔案中需要。
 
 ## 🎯 部署後的下一步
 

@@ -14,7 +14,6 @@ export default function Equipment() {
     const loadImages = async () => {
       try {
         const images = await getImagesByCategory('equipment');
-        console.log('Loaded equipment images:', images.length);
         setEquipmentImages(images);
       } catch (error) {
         console.error('Error loading equipment images:', error);

@@ -50,7 +50,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     locale: 'zh_TW',
-    url: 'https://your-domain.com',
+    url: process.env.NEXT_PUBLIC_SITE_URL || 'https://skateinfo.tw',
     title: 'SkateInfo - 滑板資訊網站',
     description: '推廣滑板文化、社群活動與教育，打造更友善、更包容的滑板環境',
     siteName: 'SkateInfo',

@@ -14,7 +14,7 @@ async function debugAuth() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         username: 'admini',
-        password: 'skate2024!'
+        password: 'skate1234'
       })
     });
 

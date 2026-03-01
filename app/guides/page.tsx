@@ -14,7 +14,6 @@ export default function Guides() {
     const loadImages = async () => {
       try {
         const images = await getImagesByCategory('general');
-        console.log('Loaded general images for guides:', images.length);
         setGeneralImages(images);
       } catch (error) {
         console.error('Error loading general images:', error);

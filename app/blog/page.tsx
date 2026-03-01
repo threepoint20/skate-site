@@ -13,6 +13,8 @@ export default function Blog() {
   const [selectedCategory, setSelectedCategory] = useState("全部");
   const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
+  const [newsletterEmail, setNewsletterEmail] = useState('');
+  const [newsletterStatus, setNewsletterStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const { hasPermission } = useAuth();
   const breadcrumbs = generateBreadcrumbs('/blog');
 
@@ -217,16 +219,44 @@ export default function Blog() {
           <p className="text-xl text-gray-300 mb-8">
             獲取最新的滑板資訊、技巧教學和活動通知
           </p>
-          <div className="flex max-w-md mx-auto">
-            <input
-              type="email"
-              placeholder="輸入你的電子郵件"
-              className="flex-1 px-4 py-3 rounded-l-lg text-gray-900"
-            />
-            <button className="px-6 py-3 bg-blue-600 hover:bg-blue-700 rounded-r-lg font-semibold transition-colors">
-              訂閱
-            </button>
-          </div>
+          {newsletterStatus === 'success' ? (
+            <p className="text-green-400 text-lg font-semibold">✅ 感謝訂閱！我們會盡快與你聯繫。</p>
+          ) : (
+            <form
+              className="flex max-w-md mx-auto"
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!newsletterEmail || !newsletterEmail.includes('@')) {
+                  setNewsletterStatus('error');
+                  return;
+                }
+                // 此處可串接實際的訂閱 API（如 Mailchimp、Resend 等）
+                setNewsletterStatus('success');
+                setNewsletterEmail('');
+              }}
+            >
+              <input
+                type="email"
+                value={newsletterEmail}
+                onChange={(e) => {
+                  setNewsletterEmail(e.target.value);
+                  setNewsletterStatus('idle');
+                }}
+                placeholder="輸入你的電子郵件"
+                className={`flex-1 px-4 py-3 rounded-l-lg text-gray-900 outline-none ${newsletterStatus === 'error' ? 'ring-2 ring-red-400' : ''}`}
+                required
+              />
+              <button
+                type="submit"
+                className="px-6 py-3 bg-blue-600 hover:bg-blue-700 rounded-r-lg font-semibold transition-colors"
+              >
+                訂閱
+              </button>
+            </form>
+          )}
+          {newsletterStatus === 'error' && (
+            <p className="text-red-400 text-sm mt-2">請輸入有效的電子郵件地址</p>
+          )}
         </div>
       </section>
 

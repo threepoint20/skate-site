@@ -14,7 +14,6 @@ export default function About() {
     const loadImages = async () => {
       try {
         const images = await getImagesByCategory('about');
-        console.log('Loaded about images:', images.length);
         setAboutImages(images);
       } catch (error) {
         console.error('Error loading about images:', error);

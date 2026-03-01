@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { getAllPosts, BlogPost } from './lib/blogData';
 import { getImagesByCategory, SiteImage } from './lib/imageManager';
 
@@ -14,26 +15,21 @@ export default function Home() {
   useEffect(() => {
     const loadContent = async () => {
       try {
-        console.log('Loading latest posts for homepage...');
         const posts = await getAllPosts();
-        console.log('Loaded posts:', posts.length);
-        
+
         // 取得最新的 3 篇已發布文章
         const publishedPosts = posts
           .filter(post => post.status === '已發布')
           .slice(0, 3);
-        
-        console.log('Published posts for homepage:', publishedPosts.length);
+
         setLatestPosts(publishedPosts);
 
         // 載入活動照片
         const images = await getImagesByCategory('activity');
-        console.log('Loaded activity images:', images.length);
         setActivityImages(images.slice(0, 3)); // 只取前 3 張
 
         // 載入首頁橫幅圖片
         const heroImgs = await getImagesByCategory('hero');
-        console.log('Loaded hero images:', heroImgs.length);
         setHeroImages(heroImgs.slice(0, 1)); // 只取第一張作為背景
       } catch (error) {
         console.error('Error loading content:', error);
@@ -113,31 +109,34 @@ export default function Home() {
         {activityImages.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
             {activityImages.map((image) => (
-              <img
-                key={image.id}
-                src={image.url}
-                alt={image.alt}
-                className="h-64 w-full object-cover rounded-xl shadow-md"
-              />
+              <div key={image.id} className="relative h-64 w-full rounded-xl shadow-md overflow-hidden">
+                <Image
+                  src={image.url}
+                  alt={image.alt}
+                  fill
+                  className="object-cover"
+                  sizes="(max-width: 768px) 100vw, 33vw"
+                />
+              </div>
             ))}
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-            <img
-              src="/activity1.png"
-              alt="活動照片 1"
-              className="h-64 w-full object-cover rounded-xl shadow-md"
-            />
-            <img
-              src="/activity2.png"
-              alt="活動照片 2"
-              className="h-64 w-full object-cover rounded-xl shadow-md"
-            />
-            <img
-              src="/activity3.png"
-              alt="活動照片 3"
-              className="h-64 w-full object-cover rounded-xl shadow-md"
-            />
+            {[
+              { src: '/activity1.png', alt: '滑板活動照片 1' },
+              { src: '/activity2.png', alt: '滑板活動照片 2' },
+              { src: '/activity3.png', alt: '滑板活動照片 3' },
+            ].map((img) => (
+              <div key={img.src} className="relative h-64 w-full rounded-xl shadow-md overflow-hidden">
+                <Image
+                  src={img.src}
+                  alt={img.alt}
+                  fill
+                  className="object-cover"
+                  sizes="(max-width: 768px) 100vw, 33vw"
+                />
+              </div>
+            ))}
           </div>
         )}
       </section>
@@ -158,11 +157,15 @@ export default function Home() {
                 <Link key={post.id} href={`/blog/${post.slug}`}>
                   <div className="p-6 border rounded-xl hover:shadow-lg transition cursor-pointer bg-white">
                     {post.coverImage && (
-                      <img
-                        src={post.coverImage}
-                        alt={post.title}
-                        className="w-full h-40 object-cover rounded-lg mb-4"
-                      />
+                      <div className="relative w-full h-40 rounded-lg mb-4 overflow-hidden">
+                        <Image
+                          src={post.coverImage}
+                          alt={post.title}
+                          fill
+                          className="object-cover"
+                          sizes="(max-width: 768px) 100vw, 33vw"
+                        />
+                      </div>
                     )}
                     <div className="flex items-center gap-2 mb-2">
                       <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
@@ -182,10 +185,7 @@ export default function Home() {
             </div>
           ) : (
             <div className="mt-10 text-center">
-              <p className="text-gray-600">目前還沒有文章</p>
-              <p className="text-xs text-gray-400 mt-2">
-                除錯資訊：載入狀態 = {loading ? '載入中' : '已完成'}，文章數量 = {latestPosts.length}
-              </p>
+              <p className="text-gray-600">目前還沒有文章，敬請期待！</p>
             </div>
           )}
 
