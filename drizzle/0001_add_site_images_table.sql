@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS "site_images" (
 	"updated_at" timestamp DEFAULT now(),
 	CONSTRAINT "site_images_image_id_unique" UNIQUE("image_id")
 );
-
+--> statement-breakpoint
 -- Insert default activity images
 INSERT INTO "site_images" ("image_id", "name", "description", "url", "category", "alt", "order") VALUES
 ('activity-1', '活動照片 1', '滑板活動現場照片', '/activity1.png', 'activity', '活動照片 1', 1),
