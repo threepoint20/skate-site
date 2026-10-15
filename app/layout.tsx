@@ -4,6 +4,8 @@ import "./globals.css";
 import Navigation from "./components/Navigation";
 import Footer from "./components/Footer";
 import StructuredData from "./components/StructuredData";
+import { AuthProvider } from "./components/AuthProvider";
+import { getSiteUrl } from "./lib/site";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -16,7 +18,11 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "SkateInfo - 滑板資訊網站",
+  metadataBase: new URL(getSiteUrl()),
+  title: {
+    default: "SkateInfo - 滑板資訊網站",
+    template: "%s | SkateInfo",
+  },
   description: "推廣滑板文化、社群活動與教育，打造更友善、更包容的滑板環境",
   verification: {
     google: "336cbb77b6f46dc6",
@@ -50,7 +56,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     locale: 'zh_TW',
-    url: process.env.NEXT_PUBLIC_SITE_URL || 'https://skateinfo.tw',
+    url: '/',
     title: 'SkateInfo - 滑板資訊網站',
     description: '推廣滑板文化、社群活動與教育，打造更友善、更包容的滑板環境',
     siteName: 'SkateInfo',
@@ -75,9 +81,11 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <Navigation />
-        {children}
-        <Footer />
+        <AuthProvider>
+          <Navigation />
+          {children}
+          <Footer />
+        </AuthProvider>
       </body>
     </html>
   );

@@ -22,9 +22,7 @@
 - **包含**: 部落格資訊和最新文章列表
 
 ### 4. 網站資料 (WebSite)
-- **位置**: 部落格列表頁面 (`/blog`)
-- **組件**: `BlogListingStructuredData.tsx`
-- **包含**: 網站搜尋功能和基本資訊
+- **目前未輸出**：網站沒有搜尋功能，因此移除了 WebSite `SearchAction`（宣告不存在的搜尋會被 Google 視為錯誤）。實作 `/blog?search=` 後可再加回。
 
 ## 組件說明
 
@@ -62,7 +60,7 @@ interface BlogListingStructuredDataProps {
 ```
 
 **功能**:
-- 為部落格頁面生成 Blog 和 WebSite 類型的結構化資料
+- 為部落格頁面生成 Blog 類型的結構化資料
 - 包含最新文章列表 (最多 10 篇)
 - 提供網站搜尋功能描述
 
@@ -125,17 +123,17 @@ node scripts/verify-seo-setup.js
 
 ## 注意事項
 
-### 客戶端渲染
-- 部落格頁面使用客戶端渲染
-- 結構化資料會在資料載入後動態生成
-- 需要等待頁面完全載入才能看到結構化資料
+### 伺服器端渲染
+- `/blog` 與 `/blog/[slug]` 的結構化資料由伺服器端輸出（`app/blog/page.tsx`、`app/blog/[slug]/layout.tsx`），搜尋引擎不需執行 JavaScript 即可讀取
+- 只會輸出已發布文章；草稿不會出現在結構化資料與 sitemap
+- 目前 `public/` 沒有網站 logo，因此 Organization／publisher 不輸出 logo 欄位；新增 logo 後可在 `StructuredData.tsx` 加回
 
 ### 設定更新
 - 使用環境變數 `NEXT_PUBLIC_SITE_URL` 設定 baseUrl
 - 本地開發：`http://localhost:3000`
 - Vercel 部署：`https://your-domain.vercel.app`
 - 自訂網域：`https://your-custom-domain.com`
-- 確保 logo 圖片路徑正確
+- 新增 logo 後再加入 logo 欄位，並確認圖片路徑正確
 - 檢查聯絡資訊是否正確
 
 ### SEO 最佳實踐
