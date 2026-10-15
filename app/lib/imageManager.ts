@@ -62,24 +62,47 @@ export const imageCategories = {
   general: '一般圖片',
 };
 
-// 獲取所有圖片
-export async function getAllImages(): Promise<SiteImage[]> {
+// 同一次頁面瀏覽中共用同一個請求，避免每個元件各自呼叫 /api/images
+const IMAGE_CACHE_TTL = 60 * 1000;
+let imagesPromise: Promise<SiteImage[]> | null = null;
+let imagesFetchedAt = 0;
+
+export function invalidateImageCache() {
+  imagesPromise = null;
+  imagesFetchedAt = 0;
+}
+
+async function fetchImages(): Promise<SiteImage[]> {
   try {
     const response = await fetch('/api/images', {
       cache: 'no-store',
       credentials: 'include',
     });
-    
+
     if (!response.ok) {
       console.warn('Failed to fetch images, using defaults');
+      invalidateImageCache();
       return defaultImages;
     }
-    
-    return await response.json();
+
+    const images: SiteImage[] = await response.json();
+    // 資料庫尚未建立任何圖片時，前端使用預設圖片（不會寫入資料庫）
+    return images.length > 0 ? images : defaultImages;
   } catch (error) {
     console.error('Error fetching images:', error);
+    invalidateImageCache();
     return defaultImages;
   }
+}
+
+// 獲取所有圖片
+export async function getAllImages(options: { fresh?: boolean } = {}): Promise<SiteImage[]> {
+  const expired = Date.now() - imagesFetchedAt > IMAGE_CACHE_TTL;
+  if (options.fresh || !imagesPromise || expired) {
+    imagesFetchedAt = Date.now();
+    imagesPromise = fetchImages();
+  }
+  return imagesPromise;
 }
 
 // 根據分類獲取圖片
@@ -107,7 +130,8 @@ export async function updateImage(id: string, updates: Partial<SiteImage>): Prom
       credentials: 'include',
       body: JSON.stringify(updates),
     });
-    
+
+    invalidateImageCache();
     return response.ok;
   } catch (error) {
     console.error('Error updating image:', error);
@@ -126,7 +150,8 @@ export async function addImage(imageData: Omit<SiteImage, 'id' | 'createdAt' | '
       credentials: 'include',
       body: JSON.stringify(imageData),
     });
-    
+
+    invalidateImageCache();
     if (response.ok) {
       return await response.json();
     }
@@ -145,7 +170,8 @@ export async function deleteImage(id: string): Promise<boolean> {
       method: 'DELETE',
       credentials: 'include',
     });
-    
+
+    invalidateImageCache();
     return response.ok;
   } catch (error) {
     console.error('Error deleting image:', error);

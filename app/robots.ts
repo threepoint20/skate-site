@@ -1,8 +1,9 @@
 import { MetadataRoute } from 'next'
- 
+import { getSiteUrl } from './lib/site'
+
 export default function robots(): MetadataRoute.Robots {
-  const baseUrl = 'https://your-domain.com' // 請替換為你的實際域名
-  
+  const baseUrl = getSiteUrl()
+
   return {
     rules: [
       {
@@ -11,9 +12,8 @@ export default function robots(): MetadataRoute.Robots {
         disallow: [
           '/admin/',
           '/api/',
-          '/debug/',
-          '/_next/',
-          '/test-upload.html',
+          '/blog/new',
+          '/blog/manage',
         ],
       },
     ],

@@ -79,11 +79,12 @@ export function generateBreadcrumbs(path: string, customItems?: BreadcrumbItem[]
 }
 
 // 為部落格文章生成導覽標記
-export function generateBlogPostBreadcrumbs(postTitle: string): BreadcrumbItem[] {
+export function generateBlogPostBreadcrumbs(postTitle: string, slug: string): BreadcrumbItem[] {
   return [
     PAGE_INFO.home,
     PAGE_INFO.blog,
-    { name: postTitle, url: '#' } // 當前頁面不需要連結
+    // 最後一項在畫面上不顯示連結，但結構化資料需要正確的文章網址
+    { name: postTitle, url: `/blog/${encodeURIComponent(slug)}` }
   ];
 }
 

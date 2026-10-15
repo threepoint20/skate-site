@@ -1,5 +1,4 @@
 // 進階權限管理系統 - 使用 JWT 認證
-import React from 'react';
 
 export type UserRole = 'guest' | 'administrator';
 
@@ -53,10 +52,10 @@ export async function authenticateUser(username: string, password: string): Prom
     if (response.ok) {
       const data = await response.json();
       return data.user;
-    } else {
-      const error = await response.json();
-      throw new Error(error.error || '登入失敗');
     }
+    const error = await response.json().catch(() => ({}));
+    if (response.status === 401) return null; // 帳號或密碼錯誤
+    throw new Error(error.error || '登入失敗');
   } catch (error) {
     console.error('Authentication error:', error);
     throw error;
@@ -107,59 +106,4 @@ export function hasPermission(user: User | null, action: string): boolean {
   }
 }
 
-// 權限中間件 Hook
-export function useAuth() {
-  const [user, setUser] = React.useState<User | null>(null);
-  const [loading, setLoading] = React.useState(true);
-
-  React.useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const currentUser = await getCurrentUser();
-        setUser(currentUser || createGuestUser());
-      } catch (error) {
-        console.error('Auth check failed:', error);
-        setUser(createGuestUser());
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    checkAuth();
-  }, []);
-
-  const login = async (username: string, password: string): Promise<boolean> => {
-    try {
-      const authenticatedUser = await authenticateUser(username, password);
-      if (authenticatedUser) {
-        setUser(authenticatedUser);
-        return true;
-      }
-      return false;
-    } catch (error) {
-      console.error('Login failed:', error);
-      return false;
-    }
-  };
-
-  const logoutUser = async () => {
-    try {
-      await logout();
-      setUser(createGuestUser());
-    } catch (error) {
-      console.error('Logout failed:', error);
-      // 即使 API 失敗，也要清除本地狀態
-      setUser(createGuestUser());
-    }
-  };
-
-  return {
-    user,
-    loading,
-    login,
-    logout: logoutUser,
-    isAdmin: isAdmin(user),
-    isGuest: isGuest(user),
-    hasPermission: (action: string) => hasPermission(user, action)
-  };
-}
+// 共用的登入狀態 hook 請使用 app/components/AuthProvider.tsx 的 useAuth

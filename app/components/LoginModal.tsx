@@ -28,8 +28,8 @@ export default function LoginModal({ isOpen, onClose, onLogin }: LoginModalProps
       } else {
         setError('帳號或密碼錯誤');
       }
-    } catch (error: any) {
-      setError(error.message || '登入時發生錯誤');
+    } catch (error) {
+      setError(error instanceof Error && error.message ? error.message : '登入時發生錯誤');
     } finally {
       setLoading(false);
     }

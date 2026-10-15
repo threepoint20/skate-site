@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { getAllPosts, updatePost, deletePost, BlogPost } from '../../lib/blogData';
+import { getAllPosts, updatePost, deletePost, deletePosts, BlogPost } from '../../lib/blogData';
 import ProtectedRoute from '../../components/ProtectedRoute';
 
 export default function ManageBlog() {
@@ -20,15 +20,16 @@ function ManageBlogContent() {
   const [filterStatus, setFilterStatus] = useState('全部');
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadPosts();
-  }, []);
-
   const loadPosts = async () => {
     const posts = await getAllPosts();
     setBlogPosts(posts);
     setLoading(false);
   };
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 初次載入資料
+    loadPosts();
+  }, []);
 
   const handleSelectPost = (postId: number) => {
     setSelectedPosts(prev => 
@@ -55,33 +56,35 @@ function ManageBlogContent() {
         .filter(post => selectedPosts.includes(post.id))
         .map(post => post.slug);
       
-      let deletedCount = 0;
-      for (const slug of slugsToDelete) {
-        const success = await deletePost(slug);
-        if (success) {
-          deletedCount++;
-        }
+      try {
+        // 使用批次刪除 API，一次請求刪除全部選取的文章
+        const deletedCount = await deletePosts(slugsToDelete);
+        alert(`已刪除 ${deletedCount} 篇文章`);
+      } catch (error) {
+        alert(`刪除失敗：${error instanceof Error ? error.message : '請稍後再試'}`);
       }
-      
       setSelectedPosts([]);
       await loadPosts(); // 重新載入資料
-      alert(`已刪除 ${deletedCount} 篇文章`);
     }
   };
 
   const handleStatusChange = async (postSlug: string, newStatus: '已發布' | '草稿') => {
-    const success = await updatePost(postSlug, { status: newStatus });
-    if (success) {
+    try {
+      await updatePost(postSlug, { status: newStatus });
       await loadPosts(); // 重新載入資料
+    } catch (error) {
+      alert(`更新狀態失敗：${error instanceof Error ? error.message : '請稍後再試'}`);
     }
   };
 
   const handleDeleteSingle = async (postSlug: string, title: string) => {
     if (confirm(`確定要刪除文章「${title}」嗎？此操作無法復原。`)) {
-      const success = await deletePost(postSlug);
-      if (success) {
+      try {
+        await deletePost(postSlug);
         await loadPosts(); // 重新載入資料
         alert('文章已刪除');
+      } catch (error) {
+        alert(`刪除失敗：${error instanceof Error ? error.message : '請稍後再試'}`);
       }
     }
   };

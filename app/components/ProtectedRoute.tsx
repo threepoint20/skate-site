@@ -1,7 +1,8 @@
 'use client';
 
-import { useAuth } from '../lib/auth';
+import { useAuth } from './AuthProvider';
 import { ReactNode } from 'react';
+import Link from 'next/link';
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -40,12 +41,12 @@ export default function ProtectedRoute({
             <p className="text-sm text-gray-500">
               當前身份：{user?.role === 'administrator' ? '管理員' : '訪客'}
             </p>
-            <a
+            <Link
               href="/blog"
               className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
             >
               返回部落格
-            </a>
+            </Link>
           </div>
         </div>
       </div>

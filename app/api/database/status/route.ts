@@ -1,8 +1,12 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getDatabaseStatus } from '@/app/lib/database';
-import { getSecurityHeaders } from '@/app/lib/security';
+import { getSecurityHeaders, isAdminRequest } from '@/app/lib/security';
 
-export async function GET() {
+// 資料庫狀態（僅管理員）
+export async function GET(request: NextRequest) {
+  if (!isAdminRequest(request)) {
+    return NextResponse.json({ error: '需要管理員權限' }, { status: 401, headers: getSecurityHeaders() });
+  }
   try {
     const status = await getDatabaseStatus();
     return NextResponse.json(status, { headers: getSecurityHeaders() });

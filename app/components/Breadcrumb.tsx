@@ -9,13 +9,15 @@ interface BreadcrumbItem {
 interface BreadcrumbProps {
   items: BreadcrumbItem[];
   className?: string;
+  /** 若結構化資料已在伺服器端輸出（例如文章頁 layout），可設為 false */
+  withStructuredData?: boolean;
 }
 
-export default function Breadcrumb({ items, className = '' }: BreadcrumbProps) {
+export default function Breadcrumb({ items, className = '', withStructuredData = true }: BreadcrumbProps) {
   return (
     <>
       {/* SEO 結構化資料 */}
-      <BreadcrumbStructuredData items={items} />
+      {withStructuredData && <BreadcrumbStructuredData items={items} />}
       
       {/* 可視化導覽標記 */}
       <nav className={`flex items-center space-x-2 text-sm text-gray-600 ${className}`} aria-label="導覽標記">

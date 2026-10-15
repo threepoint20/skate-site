@@ -1,71 +1,54 @@
 import { BlogPost } from '../lib/blogData';
+import { countWords, getSiteUrl, jsonLd, SITE_NAME, toAbsoluteUrl } from '../lib/site';
 
 interface ArticleStructuredDataProps {
   post: BlogPost;
-  baseUrl?: string;
 }
 
-export default function ArticleStructuredData({ 
-  post, 
-  baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://your-domain.com' 
-}: ArticleStructuredDataProps) {
+function toIsoDate(value: string | undefined): string | undefined {
+  if (!value) return undefined;
+  const d = new Date(value);
+  return isNaN(d.getTime()) ? undefined : d.toISOString();
+}
+
+export default function ArticleStructuredData({ post }: ArticleStructuredDataProps) {
+  const baseUrl = getSiteUrl();
+  const url = `${baseUrl}/blog/${encodeURIComponent(post.slug)}`;
+  const published = toIsoDate(post.date);
+
   const structuredData = {
     "@context": "https://schema.org",
-    "@type": "Article", // 使用 Article 而不是 NewsArticle，更適合部落格
+    "@type": "BlogPosting",
     "headline": post.title,
     "description": post.excerpt,
-    "image": post.coverImage ? [
-      post.coverImage,
-      // 如果有封面圖片，可以提供不同尺寸
-      post.coverImage
-    ] : [
-      `${baseUrl}/activity1.png` // 預設圖片
-    ],
-    "datePublished": new Date(post.date).toISOString(),
-    "dateModified": post.updatedAt ? new Date(post.updatedAt).toISOString() : new Date(post.date).toISOString(),
+    "image": [toAbsoluteUrl(post.coverImage || '/activity1.png')],
+    "datePublished": published,
+    "dateModified": toIsoDate(post.updatedAt) || published,
     "author": {
       "@type": "Person",
       "name": post.author,
-      // 如果有作者頁面，可以加入 URL
-      // "url": `${baseUrl}/author/${post.author.toLowerCase().replace(/\s+/g, '-')}`
     },
     "publisher": {
       "@type": "Organization",
-      "name": "SkateInfo",
-      "logo": {
-        "@type": "ImageObject",
-        "url": `${baseUrl}/logo.png` // 請替換為實際 logo URL
-      }
+      "name": SITE_NAME,
+      "url": baseUrl,
     },
     "mainEntityOfPage": {
       "@type": "WebPage",
-      "@id": `${baseUrl}/blog/${post.slug}`
+      "@id": url
     },
     "articleSection": post.category,
-    "keywords": post.tags ? post.tags.join(', ') : post.category,
-    "wordCount": post.content ? post.content.split(/\s+/).length : 0, // 更準確的字數計算
-    "timeRequired": post.readTime,
+    "keywords": post.tags && post.tags.length > 0 ? post.tags.join(', ') : post.category,
+    "wordCount": countWords(post.content),
     "inLanguage": "zh-TW",
-    "url": `${baseUrl}/blog/${post.slug}`,
+    "url": url,
     "isAccessibleForFree": true,
-    "genre": "滑板教學",
-    "about": {
-      "@type": "Thing",
-      "name": "滑板",
-      "description": "滑板運動相關知識與技巧"
-    }
-    // 如果文章有評分或評論，可以加入
-    // "aggregateRating": {
-    //   "@type": "AggregateRating",
-    //   "ratingValue": "4.5",
-    //   "reviewCount": "10"
-    // }
   };
 
   return (
     <script
       type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData, null, 2) }}
+      dangerouslySetInnerHTML={{ __html: jsonLd(structuredData) }}
     />
   );
 }

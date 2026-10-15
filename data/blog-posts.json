@@ -1,22 +1,5 @@
 [
   {
-    "title": "test",
-    "content": "test\nhttps://youtu.be/bd2DY84-XKs?si=UkrVxGcXhCjhZpCl",
-    "excerpt": "test",
-    "category": "初學者指南",
-    "author": "Su",
-    "readTime": "5分鐘",
-    "tags": [
-      "test"
-    ],
-    "date": "2026-01-01",
-    "status": "已發布",
-    "id": 1767231626372,
-    "slug": "test",
-    "views": 2,
-    "coverImage": "/images/blog/default-cover.png"
-  },
-  {
     "id": 1735689600000,
     "slug": "skateboard-basics-guide",
     "title": "滑板基礎入門指南",
@@ -34,7 +17,7 @@
     ],
     "status": "已發布",
     "views": 156,
-    "coverImage": "/images/blog/skateboard-basics.jpg"
+    "coverImage": "/images/blog/default-cover.png"
   },
   {
     "id": 1735689500000,
@@ -54,6 +37,6 @@
     ],
     "status": "已發布",
     "views": 243,
-    "coverImage": "/images/blog/street-tricks.jpg"
+    "coverImage": "/images/blog/ollie-guide.jpg"
   }
 ]

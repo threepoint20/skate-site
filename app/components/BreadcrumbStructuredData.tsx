@@ -1,3 +1,5 @@
+import { jsonLd, toAbsoluteUrl } from '../lib/site';
+
 interface BreadcrumbItem {
   name: string;
   url: string;
@@ -5,13 +7,9 @@ interface BreadcrumbItem {
 
 interface BreadcrumbStructuredDataProps {
   items: BreadcrumbItem[];
-  baseUrl?: string;
 }
 
-export default function BreadcrumbStructuredData({ 
-  items, 
-  baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://your-domain.com' 
-}: BreadcrumbStructuredDataProps) {
+export default function BreadcrumbStructuredData({ items }: BreadcrumbStructuredDataProps) {
   const structuredData = {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
@@ -19,14 +17,14 @@ export default function BreadcrumbStructuredData({
       "@type": "ListItem",
       "position": index + 1,
       "name": item.name,
-      "item": item.url.startsWith('http') ? item.url : `${baseUrl}${item.url}`
+      "item": toAbsoluteUrl(item.url)
     }))
   };
 
   return (
     <script
       type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData, null, 2) }}
+      dangerouslySetInnerHTML={{ __html: jsonLd(structuredData) }}
     />
   );
 }

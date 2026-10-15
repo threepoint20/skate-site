@@ -8,8 +8,8 @@ The blog system now supports cover image uploads for articles. Users with admini
 - **Click to Upload**: Traditional file picker interface
 - **Image Preview**: Real-time preview of uploaded images
 - **Security**: Only administrators can upload images
-- **File Validation**: Supports JPG, PNG, WebP, GIF formats up to 5MB
-- **Safe File Names**: Automatically generates secure file names with timestamps
+- **File Validation**: Supports JPG, PNG, WebP, GIF formats up to 4MB (Vercel Functions limit request bodies to 4.5MB)
+- **Safe File Names**: Automatically generates secure file names with timestamps; the extension is derived from the detected image type
 - **Cloud Storage**: Uses Vercel Blob in production, local files in development
 - **Automatic Environment Detection**: Seamlessly switches between storage methods
 
@@ -60,7 +60,7 @@ BLOB_READ_WRITE_TOKEN=your_blob_token_here
 ### Image Management
 - Cover images can be removed during editing
 - New images replace existing ones
-- Cloud storage handles cleanup automatically in production
+- Replaced or removed images are **not** deleted from Vercel Blob automatically (manual cleanup needed)
 
 ## Technical Implementation
 - **Upload API**: `/api/upload/image` handles file uploads with security validation
@@ -72,13 +72,12 @@ BLOB_READ_WRITE_TOKEN=your_blob_token_here
 ## Security Features
 - Admin authentication required for uploads
 - File type whitelist (images only)
-- File size limits (5MB maximum)
+- File size limits (4MB maximum)
+- File extension whitelist and magic-byte check (the browser-supplied MIME type is not trusted)
 - Rate limiting to prevent abuse
 - Secure file naming to prevent conflicts
 - Input validation and sanitization
 
 ## Error Handling
-- Graceful fallback between storage methods
 - Clear error messages for users
-- Automatic retry logic for cloud uploads
 - Comprehensive logging for debugging

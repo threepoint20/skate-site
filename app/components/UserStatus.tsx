@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { User } from '../lib/auth';
 import LoginModal from './LoginModal';
 
@@ -73,20 +74,20 @@ export default function UserStatus({ user, loading, isAdmin, onLogin, onLogout }
             
             {isAdmin && (
               <>
-                <a
+                <Link
                   href="/blog/manage"
                   className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                   onClick={() => setShowUserMenu(false)}
                 >
                   📊 文章管理
-                </a>
-                <a
+                </Link>
+                <Link
                   href="/blog/new"
                   className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                   onClick={() => setShowUserMenu(false)}
                 >
                   ✏️ 新增文章
-                </a>
+                </Link>
                 <div className="border-t border-gray-100"></div>
                 <button
                   onClick={() => {

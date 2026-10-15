@@ -55,7 +55,7 @@ export default function Guides() {
               <div className="space-y-4">
                 <div className="p-4 border-l-4 border-blue-500 bg-blue-50">
                   <h4 className="font-semibold text-blue-800">板面 (Deck)</h4>
-                  <p className="text-blue-700">寬度：7.5" - 8.5" 適合初學者</p>
+                  <p className="text-blue-700">寬度：7.5&quot; - 8.5&quot; 適合初學者</p>
                 </div>
                 <div className="p-4 border-l-4 border-green-500 bg-green-50">
                   <h4 className="font-semibold text-green-800">輪子 (Wheels)</h4>

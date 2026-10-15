@@ -1,6 +1,6 @@
 'use client';
 
-import { useAuth } from '../lib/auth';
+import { useAuth } from '../components/AuthProvider';
 import ProtectedRoute from '../components/ProtectedRoute';
 import Link from 'next/link';
 import Breadcrumb from '../components/Breadcrumb';

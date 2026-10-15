@@ -83,6 +83,7 @@ const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
 
 export function checkRateLimit(identifier: string, maxRequests = 100, windowMs = 15 * 60 * 1000): boolean {
   const now = Date.now();
+  if (rateLimitMap.size > 10000) cleanupRateLimit();
   const record = rateLimitMap.get(identifier);
   
   if (!record || now > record.resetTime) {
@@ -135,107 +136,14 @@ export function getSecurityHeaders(): Record<string, string> {
   };
 }
 
-// 輸入驗證 - 允許安全的 HTML 內容
-export function validateInput(input: string, maxLength = 1000): boolean {
-  if (!input || typeof input !== 'string') {
-    return false;
-  }
-  
-  if (input.length > maxLength) {
-    console.log('Input validation failed: content too long', {
-      length: input.length,
-      maxLength
-    });
-    return false;
-  }
-  
-  // 檢查是否包含惡意腳本（但允許安全的 iframe）
-  const dangerousPatterns = [
-    /<script/i,
-    /javascript:/i,
-    /on\w+\s*=/i,
-    /<object/i,
-    /<embed/i,
-  ];
-  
-  // 檢查惡意模式
-  const matchedDangerousPattern = dangerousPatterns.find(pattern => pattern.test(input));
-  if (matchedDangerousPattern) {
-    console.log('Input validation failed: dangerous pattern detected', {
-      pattern: matchedDangerousPattern.toString(),
-      input: input.substring(0, 200) + '...'
-    });
-    return false;
-  }
-  
-  // 如果包含 iframe，檢查是否為安全來源
-  if (/<iframe/i.test(input)) {
-    const isValidIframe = validateIframe(input);
-    if (!isValidIframe) {
-      console.log('Input validation failed: invalid iframe');
-    }
-    return isValidIframe;
-  }
-  
-  return true;
+// 純文字欄位驗證（標題、作者等，React 會自動跳脫，這裡只檢查型別與長度）
+export function validateText(input: unknown, maxLength = 1000, required = true): boolean {
+  if (input === undefined || input === null || input === '') return !required;
+  return typeof input === 'string' && input.length <= maxLength;
 }
 
-// 驗證 iframe 是否來自安全來源
-function validateIframe(input: string): boolean {
-  // 允許的安全來源
-  const safeSources = [
-    // YouTube
-    /src="https:\/\/www\.youtube\.com\/embed\//i,
-    /src="https:\/\/www\.youtube-nocookie\.com\/embed\//i,
-    // Vimeo
-    /src="https:\/\/player\.vimeo\.com\/video\//i,
-    // Dailymotion
-    /src="https:\/\/www\.dailymotion\.com\/embed\//i,
-    // Google Maps
-    /src="https:\/\/www\.google\.com\/maps\/embed/i,
-    /src="https:\/\/maps\.google\.com\/maps/i,
-    // Google My Maps
-    /src="https:\/\/www\.google\.com\/maps\/d\/embed/i,
-  ];
-  
-  // 檢查是否包含安全來源
-  const hasSafeSource = safeSources.some(pattern => pattern.test(input));
-  
-  if (!hasSafeSource) {
-    console.log('Iframe validation failed: unsafe source detected', {
-      input: input.substring(0, 200) + '...',
-      matchedPatterns: safeSources.map(pattern => pattern.test(input))
-    });
-    return false;
-  }
-  
-  // 檢查 iframe 是否包含危險屬性
-  const dangerousIframePatterns = [
-    /on\w+\s*=/i,
-    /javascript:/i,
-    /data:/i,
-    /srcdoc=/i,
-  ];
-  
-  const hasDangerousPattern = dangerousIframePatterns.some(pattern => pattern.test(input));
-  
-  if (hasDangerousPattern) {
-    console.log('Iframe validation failed: dangerous pattern detected', {
-      input: input.substring(0, 200) + '...',
-      dangerousPatterns: dangerousIframePatterns.map(pattern => pattern.test(input))
-    });
-    return false;
-  }
-  
-  return true;
-}
-
-// 清理 HTML 輸入
-export function sanitizeHTML(input: string): string {
-  return input
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#x27;')
-    .replace(/\//g, '&#x2F;');
+// 是否為已登入的管理員
+export function isAdminRequest(request: NextRequest): boolean {
+  const auth = verifyRequestAuth(request);
+  return !!auth && auth.role === 'administrator';
 }

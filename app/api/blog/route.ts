@@ -1,21 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyRequestAuth, getSecurityHeaders, checkRateLimit, getClientIP, validateInput } from '@/app/lib/security';
-import { getAllPostsFromDB, addPostToDB } from '@/app/lib/database';
+import { getSecurityHeaders, checkRateLimit, getClientIP, isAdminRequest } from '@/app/lib/security';
+import { getAllPostsFromDB, getPublishedPostsFromDB, addPostToDB } from '@/app/lib/database';
+import { validatePostInput } from '@/app/lib/postValidation';
+import { generateSlug } from '@/app/lib/blogData';
 
-// 讀取所有文章
+// 由內容產生純文字摘要（去除 Markdown/HTML 符號）
+function makeExcerpt(content: string): string {
+  const text = content.replace(/<[^>]*>/g, ' ').replace(/[#*_>`\[\]()!|-]/g, '').replace(/\s+/g, ' ').trim();
+  return text.length > 100 ? `${text.substring(0, 100)}...` : text;
+}
+
+// 讀取文章：管理員可看到全部（含草稿），訪客只會拿到已發布文章
 export async function GET(request: NextRequest) {
   try {
-    // Rate limiting
     const clientIP = getClientIP(request);
-    if (!checkRateLimit(`blog-read:${clientIP}`, 100, 15 * 60 * 1000)) {
+    if (!checkRateLimit(`blog-read:${clientIP}`, 300, 15 * 60 * 1000)) {
       return NextResponse.json(
         { error: '請求過於頻繁，請稍後再試' },
         { status: 429, headers: getSecurityHeaders() }
       );
     }
 
-    const posts = await getAllPostsFromDB();
-    return NextResponse.json(posts, { headers: getSecurityHeaders() });
+    const posts = isAdminRequest(request) ? await getAllPostsFromDB() : await getPublishedPostsFromDB();
+    return NextResponse.json(posts, { headers: { ...getSecurityHeaders(), 'Cache-Control': 'no-store' } });
   } catch (error) {
     console.error('Error reading blog posts:', error);
     return NextResponse.json(
@@ -28,63 +35,51 @@ export async function GET(request: NextRequest) {
 // 新增單篇文章 (需要管理員權限)
 export async function POST(request: NextRequest) {
   try {
-    // Rate limiting
-    const clientIP = getClientIP(request);
-    if (!checkRateLimit(`blog-write:${clientIP}`, 10, 15 * 60 * 1000)) {
-      return NextResponse.json(
-        { error: '請求過於頻繁，請稍後再試' },
-        { status: 429, headers: getSecurityHeaders() }
-      );
-    }
-
-    // 驗證認證
-    const authData = verifyRequestAuth(request);
-    if (!authData || authData.role !== 'administrator') {
+    if (!isAdminRequest(request)) {
       return NextResponse.json(
         { error: '需要管理員權限' },
         { status: 401, headers: getSecurityHeaders() }
       );
     }
 
+    const clientIP = getClientIP(request);
+    if (!checkRateLimit(`blog-write:${clientIP}`, 200, 15 * 60 * 1000)) {
+      return NextResponse.json(
+        { error: '請求過於頻繁，請稍後再試' },
+        { status: 429, headers: getSecurityHeaders() }
+      );
+    }
+
     const postData = await request.json();
-    
-    // 檢查是否為批量儲存（向後相容）
-    if (Array.isArray(postData)) {
-      return NextResponse.json(
-        { error: '請使用個別文章新增 API' },
-        { status: 400, headers: getSecurityHeaders() }
-      );
+    const validationError = validatePostInput(postData, false);
+    if (validationError) {
+      return NextResponse.json({ error: validationError }, { status: 400, headers: getSecurityHeaders() });
     }
-    
-    // 驗證文章內容
-    const titleValid = validateInput(postData.title, 200);
-    const contentValid = validateInput(postData.content, 50000);
-    
-    if (!titleValid) {
-      console.log('Title validation failed for:', postData.title?.substring(0, 100));
-      return NextResponse.json(
-        { error: '文章標題包含無效字符或過長（最多 200 字符）' },
-        { status: 400, headers: getSecurityHeaders() }
-      );
-    }
-    
-    if (!contentValid) {
-      console.log('Content validation failed for content length:', postData.content?.length);
-      return NextResponse.json(
-        { error: '文章內容包含無效字符或過長（最多 50000 字符）。如果包含 iframe，請確保來源為 YouTube、Vimeo、Dailymotion 或 Google Maps。' },
-        { status: 400, headers: getSecurityHeaders() }
-      );
-    }
-    
-    const newPost = await addPostToDB(postData);
+
+    const newPost = await addPostToDB({
+      slug: typeof postData.slug === 'string' && /^[\w\u4e00-\u9fa5-]{1,80}$/.test(postData.slug)
+        ? postData.slug
+        : generateSlug(postData.title),
+      title: postData.title,
+      content: postData.content,
+      excerpt: postData.excerpt || makeExcerpt(postData.content),
+      date: postData.date || new Date().toISOString().split('T')[0],
+      category: postData.category,
+      readTime: postData.readTime || '5 分鐘',
+      author: postData.author || '匿名作者',
+      tags: postData.tags || [],
+      status: postData.status || '已發布',
+      views: 0,
+      coverImage: postData.coverImage || undefined,
+    });
+
     if (newPost) {
       return NextResponse.json(newPost, { headers: getSecurityHeaders() });
-    } else {
-      return NextResponse.json(
-        { error: '新增文章失敗' },
-        { status: 500, headers: getSecurityHeaders() }
-      );
     }
+    return NextResponse.json(
+      { error: '新增文章失敗' },
+      { status: 500, headers: getSecurityHeaders() }
+    );
   } catch (error) {
     console.error('Error adding blog post:', error);
     return NextResponse.json(

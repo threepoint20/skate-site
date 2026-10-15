@@ -17,6 +17,19 @@ export interface BlogPost {
   coverImage?: string; 
 }
 
+// slug 可能已經被 URL 編碼（例如中文 slug），統一先解碼再編碼，避免重複編碼
+export function normalizeSlug(slug: string): string {
+  try {
+    return decodeURIComponent(slug);
+  } catch {
+    return slug;
+  }
+}
+
+function slugPath(slug: string): string {
+  return encodeURIComponent(normalizeSlug(slug));
+}
+
 // 生成唯一ID
 export function generateId(): number {
   return Date.now() + Math.floor(Math.random() * 1000);
@@ -68,33 +81,10 @@ export async function getAllPosts(): Promise<BlogPost[]> {
   }
 }
 
-// 儲存所有文章 (需要管理員權限)
-export async function savePosts(posts: BlogPost[]): Promise<boolean> {
-  try {
-    const response = await fetch('/api/blog', {
-      method: 'POST',
-      headers: getAuthHeaders(),
-      credentials: 'include',
-      body: JSON.stringify(posts),
-    });
-    
-    if (!response.ok) {
-      const error = await response.json();
-      const errorMessage = error.error || `HTTP ${response.status}`;
-      throw new Error(`API 錯誤: ${errorMessage}`);
-    }
-    
-    return true;
-  } catch (error: any) {
-    console.error('Error saving posts:', error);
-    throw new Error(error.message || '儲存文章失敗');
-  }
-}
-
 // 根據 slug 獲取單篇文章
 export async function getPostBySlug(slug: string): Promise<BlogPost | null> {
   try {
-    const response = await fetch(`/api/blog/${slug}`, {
+    const response = await fetch(`/api/blog/${slugPath(slug)}`, {
       cache: 'no-store',
       credentials: 'include',
     });
@@ -110,86 +100,79 @@ export async function getPostBySlug(slug: string): Promise<BlogPost | null> {
   }
 }
 
-// 新增文章
-export async function addPost(postData: Omit<BlogPost, 'id' | 'slug' | 'views'>): Promise<BlogPost | null> {
-  try {
-    const newPostData = {
+// 新增文章（失敗時丟出含伺服器訊息的錯誤）
+export async function addPost(postData: Omit<BlogPost, 'id' | 'slug' | 'views'>): Promise<BlogPost> {
+  const response = await fetch('/api/blog', {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    credentials: 'include',
+    body: JSON.stringify({
       ...postData,
       slug: generateSlug(postData.title),
-      views: 0,
-      coverImage: postData.coverImage || undefined
-    };
-    
-    const response = await fetch('/api/blog', {
-      method: 'POST',
-      headers: getAuthHeaders(),
-      credentials: 'include',
-      body: JSON.stringify(newPostData),
-    });
-    
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || '新增文章失敗');
-    }
-    
-    return await response.json();
-  } catch (error: any) {
-    console.error('Error adding post:', error);
-    throw new Error(error.message || '新增文章失敗');
+      coverImage: postData.coverImage || undefined,
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.error || '新增文章失敗');
   }
+
+  return await response.json();
 }
 
-// 更新文章 (需要管理員權限)
-export async function updatePost(slug: string, updates: Partial<BlogPost>): Promise<boolean> {
-  try {
-    const response = await fetch(`/api/blog/${slug}`, {
-      method: 'PUT',
-      headers: getAuthHeaders(),
-      credentials: 'include',
-      body: JSON.stringify(updates),
-    });
-    
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Failed to update post');
-    }
-    
-    return true;
-  } catch (error) {
-    console.error('Error updating post:', error);
-    return false;
+// 更新文章 (需要管理員權限)，失敗時丟出含伺服器訊息的錯誤
+export async function updatePost(slug: string, updates: Partial<BlogPost>): Promise<BlogPost> {
+  const response = await fetch(`/api/blog/${slugPath(slug)}`, {
+    method: 'PUT',
+    headers: getAuthHeaders(),
+    credentials: 'include',
+    body: JSON.stringify(updates),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.error || '更新文章失敗');
   }
+
+  return await response.json();
 }
 
 // 刪除文章 (需要管理員權限)
 export async function deletePost(slug: string): Promise<boolean> {
-  try {
-    const response = await fetch(`/api/blog/${slug}`, {
-      method: 'DELETE',
-      headers: getAuthHeaders(),
-      credentials: 'include',
-    });
-    
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Failed to delete post');
-    }
-    
-    return true;
-  } catch (error) {
-    console.error('Error deleting post:', error);
-    return false;
-  }
+  return (await deletePosts([slug])) > 0;
 }
 
-// 增加瀏覽數
-export async function incrementViews(slug: string): Promise<void> {
+// 批次刪除文章 (需要管理員權限)，回傳實際刪除數量
+export async function deletePosts(slugs: string[]): Promise<number> {
+  const response = await fetch('/api/blog/batch-delete', {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    credentials: 'include',
+    body: JSON.stringify({ slugs }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.error || '刪除文章失敗');
+  }
+
+  const result = await response.json();
+  return result.deleted || 0;
+}
+
+// 增加瀏覽數（公開端點，訪客也會計數）
+export async function incrementViews(slug: string): Promise<number | null> {
   try {
-    const post = await getPostBySlug(slug);
-    if (post) {
-      await updatePost(slug, { views: (post.views || 0) + 1 });
-    }
+    const response = await fetch(`/api/blog/${slugPath(slug)}/views`, {
+      method: 'POST',
+      credentials: 'include',
+    });
+    if (!response.ok) return null;
+    const result = await response.json();
+    return result.counted ? result.views : null;
   } catch (error) {
     console.error('Error incrementing views:', error);
+    return null;
   }
 }

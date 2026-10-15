@@ -74,13 +74,12 @@ export async function POST(request: NextRequest) {
       { headers: getSecurityHeaders() }
     );
     
-  } catch (error: any) {
+  } catch (error) {
     console.error('❌ Migration error:', error);
     return NextResponse.json(
-      { 
-        error: 'Migration failed', 
-        details: error.message,
-        stack: error.stack 
+      {
+        error: 'Migration failed',
+        details: error instanceof Error ? error.message : String(error),
       },
       { status: 500, headers: getSecurityHeaders() }
     );
