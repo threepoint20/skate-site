@@ -85,11 +85,11 @@ Sk8Board#2024$
 
 ### 本地環境
 1. 編輯 `.env.local` 檔案
-2. 修改 `ADMIN_PASSWORD` 的值
+2. 用 `node scripts/hash-password.js '新密碼'` 產生雜湊，修改 `ADMIN_PASSWORD_HASH` 的值
 3. 重新啟動開發伺服器
 
 ### 生產環境
-1. 在 Vercel 控制台更新 `ADMIN_PASSWORD` 環境變數
+1. 在 Vercel 控制台更新 `ADMIN_PASSWORD_HASH` 環境變數
 2. 觸發重新部署
 
 ## 🚨 安全注意事項
