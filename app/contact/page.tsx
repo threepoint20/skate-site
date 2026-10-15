@@ -1,11 +1,14 @@
 'use client';
 
+import { useState } from 'react';
 import PageHero from '../components/PageHero';
 import Breadcrumb from '../components/Breadcrumb';
 import { generateBreadcrumbs } from '../lib/breadcrumbs';
 
 export default function Contact() {
   const breadcrumbs = generateBreadcrumbs('/contact');
+  // 線上表單尚未串接寄信服務：不送出任何資料，並誠實告知使用者
+  const [showNotice, setShowNotice] = useState(false);
 
   return (
     <main className="min-h-screen bg-background text-foreground">
@@ -29,7 +32,17 @@ export default function Contact() {
             {/* Contact Form */}
             <div className="bg-white p-8 rounded-lg shadow-md">
               <h2 className="text-3xl font-bold mb-6 text-black">發送訊息</h2>
-              <form className="space-y-6">
+              <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-800">
+                線上表單尚未開通寄送功能，請先透過右側的電子郵件或電話與我們聯絡。
+              </div>
+              <form
+                className="space-y-6"
+                method="post"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  setShowNotice(true);
+                }}
+              >
                 <div>
                   <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
                     姓名 *
@@ -111,6 +124,11 @@ export default function Contact() {
                 >
                   發送訊息
                 </button>
+                {showNotice && (
+                  <p role="alert" className="text-sm text-red-600">
+                    您的訊息「尚未」送出：線上表單目前還沒有串接寄信服務。請複製內容，改用右側的電子郵件或電話聯絡我們。
+                  </p>
+                )}
               </form>
             </div>
 

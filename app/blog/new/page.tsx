@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { addPost } from '../../lib/blogData';
 import ProtectedRoute from '../../components/ProtectedRoute';
 import ImageUpload from '../../components/ImageUpload';
+import { renderMarkdown } from '../../lib/content';
 
 export default function NewBlogPost() {
   return (
@@ -45,8 +46,11 @@ function NewBlogPostContent() {
     }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    // 依按下的按鈕決定狀態：「發布文章」或「儲存為草稿」
+    const submitter = (e.nativeEvent as SubmitEvent).submitter as HTMLButtonElement | null;
+    const status: '已發布' | '草稿' = submitter?.value === '草稿' ? '草稿' : '已發布';
     
     // 基本驗證
     if (!formData.title || !formData.content || !formData.category) {
@@ -59,56 +63,48 @@ function NewBlogPostContent() {
       const newPost = await addPost({
         title: formData.title,
         content: formData.content,
-        excerpt: formData.excerpt || formData.content.substring(0, 100) + '...',
+        excerpt: formData.excerpt, // 留空時由伺服器自動產生純文字摘要
         category: formData.category,
         author: formData.author || '匿名作者',
         readTime: formData.readTime || '5 分鐘',
         tags: formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag),
         date: new Date().toISOString().split('T')[0],
-        status: '已發布',
+        status,
         coverImage: formData.coverImage
       });
 
-      if (newPost) {
-        alert('文章已成功建立！');
-        router.push(`/blog/${newPost.slug}`);
-      } else {
-        alert('建立文章時發生錯誤，請稍後再試');
-      }
-    } catch (error: any) {
+      alert(status === '草稿' ? '草稿已儲存！（訪客看不到草稿）' : '文章已成功發布！');
+      router.push(`/blog/${encodeURIComponent(newPost.slug)}`);
+    } catch (error) {
       console.error('Error creating post:', error);
-      const errorMessage = error.message || '建立文章時發生錯誤，請稍後再試';
+      const errorMessage = error instanceof Error ? error.message : '建立文章時發生錯誤，請稍後再試';
       alert(`錯誤：${errorMessage}`);
     }
   };
 
   const handlePreview = () => {
-    // 簡單的預覽功能
+    // 預覽使用與正式文章相同的 Markdown 轉換與 DOMPurify 清理；其他欄位以純文字插入
     const previewWindow = window.open('', '_blank');
-    if (previewWindow) {
-      previewWindow.document.write(`
-        <html>
-          <head>
-            <title>預覽: ${formData.title}</title>
-            <style>
-              body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
-              h1 { color: #333; }
-              .meta { color: #666; margin-bottom: 20px; }
-              .content { line-height: 1.6; }
-            </style>
-          </head>
-          <body>
-            <h1>${formData.title}</h1>
-            <div class="meta">
-              分類: ${formData.category} | 作者: ${formData.author} | 閱讀時間: ${formData.readTime}
-            </div>
-            <div class="content">
-              ${formData.content.replace(/\n/g, '<br>')}
-            </div>
-          </body>
-        </html>
-      `);
-    }
+    if (!previewWindow) return;
+    const doc = previewWindow.document;
+    doc.title = `預覽: ${formData.title}`;
+    const style = doc.createElement('style');
+    style.textContent = `
+      body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; line-height: 1.7; }
+      h1 { color: #333; }
+      .meta { color: #666; margin-bottom: 20px; }
+      iframe { width: 100%; aspect-ratio: 16 / 9; border: 0; }
+      img { max-width: 100%; }
+    `;
+    doc.head.appendChild(style);
+    const title = doc.createElement('h1');
+    title.textContent = formData.title;
+    const meta = doc.createElement('div');
+    meta.className = 'meta';
+    meta.textContent = `分類: ${formData.category} | 作者: ${formData.author} | 閱讀時間: ${formData.readTime}`;
+    const content = doc.createElement('div');
+    content.innerHTML = renderMarkdown(formData.content);
+    doc.body.append(title, meta, content);
   };
 
   return (
@@ -270,11 +266,20 @@ function NewBlogPostContent() {
             <div className="flex gap-4 pt-6">
               <button
                 type="submit"
+                value="已發布"
                 className="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors"
               >
                 發布文章
               </button>
-              
+
+              <button
+                type="submit"
+                value="草稿"
+                className="px-6 py-3 bg-white border border-blue-600 text-blue-600 rounded-lg font-semibold hover:bg-blue-50 transition-colors"
+              >
+                儲存為草稿
+              </button>
+
               <button
                 type="button"
                 onClick={handlePreview}

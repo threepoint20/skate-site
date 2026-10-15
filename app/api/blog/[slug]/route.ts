@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { normalizeSlug } from '@/app/lib/blogData';
 import { getSecurityHeaders, checkRateLimit, getClientIP, isAdminRequest } from '@/app/lib/security';
 import { getPostBySlugFromDB, updatePostInDB, deletePostFromDB } from '@/app/lib/database';
 import { validatePostInput } from '@/app/lib/postValidation';
@@ -23,7 +24,7 @@ export async function GET(request: NextRequest, { params }: Params) {
     const clientIP = getClientIP(request);
     if (!checkRateLimit(`blog-read:${clientIP}`, 300, 15 * 60 * 1000)) return tooManyRequests();
 
-    const { slug } = await params;
+    const slug = normalizeSlug((await params).slug);
     const post = await getPostBySlugFromDB(slug);
     if (!post || (post.status !== '已發布' && !isAdminRequest(request))) return notFound();
 
@@ -40,7 +41,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
     if (!isAdminRequest(request)) return unauthorized();
     if (!checkRateLimit(`blog-write:${getClientIP(request)}`, 200, 15 * 60 * 1000)) return tooManyRequests();
 
-    const { slug } = await params;
+    const slug = normalizeSlug((await params).slug);
     const updates = await request.json();
     const validationError = validatePostInput(updates, true);
     if (validationError) {
@@ -64,7 +65,7 @@ export async function DELETE(request: NextRequest, { params }: Params) {
     if (!isAdminRequest(request)) return unauthorized();
     if (!checkRateLimit(`blog-write:${getClientIP(request)}`, 200, 15 * 60 * 1000)) return tooManyRequests();
 
-    const { slug } = await params;
+    const slug = normalizeSlug((await params).slug);
     const success = await deletePostFromDB(slug);
     if (!success) return notFound();
 

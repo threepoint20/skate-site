@@ -1,13 +1,13 @@
 'use client';
 
-import { useState, useEffect, use } from 'react';
+import { useState, useEffect, useMemo, useRef, use } from 'react';
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
+import { notFound, useSearchParams } from 'next/navigation';
 import { getPostBySlug, updatePost, getAllPosts, incrementViews, BlogPost } from '../../lib/blogData';
-import { useAuth } from '../../lib/auth';
+import { useAuth } from '../../components/AuthProvider';
 import ImageUpload from '../../components/ImageUpload';
-import ArticleStructuredData from '../../components/ArticleStructuredData';
 import Breadcrumb from '../../components/Breadcrumb';
+import { renderMarkdown } from '../../lib/content';
 import { generateBlogPostBreadcrumbs } from '../../lib/breadcrumbs';
 
 interface BlogPostPageProps {
@@ -28,8 +28,12 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
   const [editedTitle, setEditedTitle] = useState('');
   const [editedCoverImage, setEditedCoverImage] = useState('');
   const [loading, setLoading] = useState(true);
-  const { hasPermission } = useAuth();
+  const { hasPermission, loading: authLoading } = useAuth();
   const [relatedPosts, setRelatedPosts] = useState<BlogPost[]>([]);
+  const searchParams = useSearchParams();
+  const wantsEdit = searchParams.get('edit') === 'true';
+  const canEdit = hasPermission('edit_posts');
+  const autoEditApplied = useRef(false);
 
   // 3. 所有的 useEffect 也必須放在最上方
   useEffect(() => {
@@ -40,9 +44,12 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
         setEditedContent(foundPost.content);
         setEditedTitle(foundPost.title);
         setEditedCoverImage(foundPost.coverImage || '');
-        
-        // 增加瀏覽數
-        await incrementViews(slug);
+
+        // 增加瀏覽數（公開端點；草稿不會計數）
+        const views = await incrementViews(slug);
+        if (views !== null) {
+          setPost(prev => (prev ? { ...prev, views } : prev));
+        }
       }
       setLoading(false);
     };
@@ -64,32 +71,32 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
     loadRelatedPosts();
   }, [post]);
 
+  // 從列表的「編輯」連結 (?edit=true) 進入時，管理員自動進入編輯模式
+  useEffect(() => {
+    if (wantsEdit && !authLoading && canEdit && post && !autoEditApplied.current) {
+      autoEditApplied.current = true;
+      setIsEditing(true);
+    }
+  }, [wantsEdit, authLoading, canEdit, post]);
+
+  const renderedContent = useMemo(() => (post ? renderMarkdown(post.content) : ''), [post]);
+
   // 4. 事件處理函式
   const handleSave = async () => {
     if (!post) return;
     
     try {
-      const success = await updatePost(post.slug, {
+      const updated = await updatePost(post.slug, {
         title: editedTitle,
         content: editedContent,
         coverImage: editedCoverImage
       });
-      
-      if (success) {
-        setPost({
-          ...post,
-          title: editedTitle,
-          content: editedContent,
-          coverImage: editedCoverImage
-        });
-        setIsEditing(false);
-        alert('文章已儲存！');
-      } else {
-        alert('儲存失敗，請稍後再試');
-      }
+      setPost(updated);
+      setIsEditing(false);
+      alert('文章已儲存！');
     } catch (error) {
       console.error('Error saving post:', error);
-      alert('儲存時發生錯誤');
+      alert(`儲存失敗：${error instanceof Error ? error.message : '請稍後再試'}`);
     }
   };
 
@@ -121,9 +128,7 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
   // 最終 UI 渲染
   return (
     <>
-      {/* SEO 結構化資料 */}
-      <ArticleStructuredData post={post} />
-      
+      {/* Article / Breadcrumb 結構化資料由 app/blog/[slug]/layout.tsx 在伺服器端輸出 */}
       <main className="min-h-screen bg-background text-foreground">
       {/* Header */}
       <section className="px-6 py-12 bg-gray-50">
@@ -134,7 +139,7 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
           
           {/* Breadcrumb */}
           <div className="mb-6">
-            <Breadcrumb items={generateBlogPostBreadcrumbs(post.title)} />
+            <Breadcrumb items={generateBlogPostBreadcrumbs(post.title, post.slug)} withStructuredData={false} />
           </div>
           
           <div className="flex justify-between items-start mb-6">
@@ -168,7 +173,7 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
                   </button>
                 </>
               ) : (
-                hasPermission('edit_posts') && (
+                canEdit && (
                   <button
                     onClick={() => setIsEditing(true)}
                     className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
@@ -184,6 +189,9 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
             <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full">
               {post.category}
             </span>
+            {post.status === '草稿' && (
+              <span className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full">草稿（訪客看不到）</span>
+            )}
             <span>作者：{post.author}</span>
             <span>發布日期：{post.date}</span>
             <span>閱讀時間：{post.readTime}</span>
@@ -248,27 +256,14 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
                 />
               </div>
               <div className="text-sm text-gray-500">
-                提示：支援 Markdown 語法，如 # 標題、**粗體**、*斜體* 等
+                提示：支援 Markdown 語法（# 標題、**粗體**、*斜體*、- 清單、[連結](https://...)），影片僅允許 YouTube 嵌入 iframe
               </div>
             </div>
           ) : (
-            <div className="prose prose-lg max-w-none">
-              <div 
-                className="whitespace-pre-wrap"
-                dangerouslySetInnerHTML={{ 
-                  __html: post.content
-                    .replace(/^# (.*$)/gm, '<h1 class="text-3xl font-bold mt-8 mb-4">$1</h1>')
-                    .replace(/^## (.*$)/gm, '<h2 class="text-2xl font-semibold mt-6 mb-3">$1</h2>')
-                    .replace(/^### (.*$)/gm, '<h3 class="text-xl font-medium mt-4 mb-2">$1</h3>')
-                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                    .replace(/\*(.*?)\*/g, '<em>$1</em>')
-                    .replace(/^- (.*$)/gm, '<li class="ml-4">$1</li>')
-                    .replace(/^\d+\. (.*$)/gm, '<li class="ml-4">$1</li>')
-                    .replace(/\n\n/g, '</p><p class="mb-4">')
-                    .replace(/^(?!<[h|l])/gm, '<p class="mb-4">')
-                }}
-              />
-            </div>
+            <div
+              className="markdown-body"
+              dangerouslySetInnerHTML={{ __html: renderedContent }}
+            />
           )}
         </div>
       </section>

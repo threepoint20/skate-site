@@ -4,6 +4,12 @@ import { getAllPostsFromDB, getPublishedPostsFromDB, addPostToDB } from '@/app/l
 import { validatePostInput } from '@/app/lib/postValidation';
 import { generateSlug } from '@/app/lib/blogData';
 
+// 由內容產生純文字摘要（去除 Markdown/HTML 符號）
+function makeExcerpt(content: string): string {
+  const text = content.replace(/<[^>]*>/g, ' ').replace(/[#*_>`\[\]()!|-]/g, '').replace(/\s+/g, ' ').trim();
+  return text.length > 100 ? `${text.substring(0, 100)}...` : text;
+}
+
 // 讀取文章：管理員可看到全部（含草稿），訪客只會拿到已發布文章
 export async function GET(request: NextRequest) {
   try {
@@ -56,7 +62,7 @@ export async function POST(request: NextRequest) {
         : generateSlug(postData.title),
       title: postData.title,
       content: postData.content,
-      excerpt: postData.excerpt || postData.content.substring(0, 100),
+      excerpt: postData.excerpt || makeExcerpt(postData.content),
       date: postData.date || new Date().toISOString().split('T')[0],
       category: postData.category,
       readTime: postData.readTime || '5 分鐘',

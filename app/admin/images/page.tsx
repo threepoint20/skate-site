@@ -21,13 +21,9 @@ function ImageManagementContent() {
   const [editingImage, setEditingImage] = useState<SiteImage | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
 
-  useEffect(() => {
-    loadImages();
-  }, []);
-
   const loadImages = async () => {
     try {
-      const allImages = await getAllImages();
+      const allImages = await getAllImages({ fresh: true });
       setImages(allImages);
     } catch (error) {
       console.error('Error loading images:', error);
@@ -35,6 +31,11 @@ function ImageManagementContent() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 初次載入資料
+    loadImages();
+  }, []);
 
   const filteredImages = selectedCategory === 'all' 
     ? images 
@@ -179,9 +180,9 @@ function ImageManagementContent() {
                       <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
                         {imageCategories[image.category as keyof typeof imageCategories]}
                       </span>
-                      {image.order && (
+                      {image.order ? (
                         <span className="text-xs text-gray-500">順序: {image.order}</span>
-                      )}
+                      ) : null}
                     </div>
                     <h3 className="font-semibold text-gray-900 mb-1">{image.name}</h3>
                     <p className="text-sm text-gray-600 mb-3 line-clamp-2">{image.description}</p>
@@ -325,7 +326,7 @@ function EditImageModal({
                 </label>
                 <select
                   value={formData.category}
-                  onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value as any }))}
+                  onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value as SiteImage['category'] }))}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   required
                 >
@@ -396,7 +397,7 @@ function AddImageModal({
     name: '',
     description: '',
     url: '',
-    category: 'general' as const,
+    category: 'general' as SiteImage['category'],
     alt: '',
     order: 0,
   });
@@ -459,7 +460,7 @@ function AddImageModal({
                 </label>
                 <select
                   value={formData.category}
-                  onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value as any }))}
+                  onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value as SiteImage['category'] }))}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   required
                 >
