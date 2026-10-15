@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // 開發/維運用的 CommonJS 腳本，不納入 Next.js 應用程式的 lint
+    "scripts/**",
   ]),
 ]);
 

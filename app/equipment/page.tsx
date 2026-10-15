@@ -72,12 +72,12 @@ export default function Equipment() {
                   <h3 className="font-semibold text-blue-800 mb-2">板面 (Deck)</h3>
                   <p className="mb-1 text-sm md:text-base">
                     <span className="text-blue-700">滑板的主體，通常由7層楓木製成</span>
-                    <span className="font-medium text-red-800"> 寬度(大宗 8.0")</span>
+                    <span className="font-medium text-red-800"> 寬度(大宗 8.0&quot;)</span>
                   </p>
                   <div className="text-blue-600 text-sm md:text-sm">
-                    <p>7.5" - 7.75"(小孩)</p>
-                    <p>8.0" - 8.25"(一般成人)</p>
-                    <p>8.5" - 9.0"(較適合巡航/穩定)</p>
+                    <p>7.5&quot; - 7.75&quot;(小孩)</p>
+                    <p>8.0&quot; - 8.25&quot;(一般成人)</p>
+                    <p>8.5&quot; - 9.0&quot;(較適合巡航/穩定)</p>
                   </div>
                 </div>
 
@@ -86,7 +86,7 @@ export default function Equipment() {
                   <h3 className="font-semibold text-orange-800 mb-2">輪子 (Wheels)</h3>
                   <p className="mb-1 text-sm md:text-sm">
                     <span className="text-orange-700">提供滑行動力，有不同硬度和尺寸</span>
-                    <span className="font-medium text-red-800">(大宗 99a/54mm")</span>
+                    <span className="font-medium text-red-800">(大宗 99a/54mm&quot;)</span>
                   </p>
                   <div className="space-y-1 text-sm md:text-sm">
                     <p className="text-orange-600">小輪(50-54mm) 適合技巧、翻板</p>
