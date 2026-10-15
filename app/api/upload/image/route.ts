@@ -1,215 +1,104 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { writeFile, mkdir } from 'fs/promises';
 import path from 'path';
-import { verifyRequestAuth, getSecurityHeaders, checkRateLimit, getClientIP } from '@/app/lib/security';
+import { getSecurityHeaders, checkRateLimit, getClientIP, isAdminRequest } from '@/app/lib/security';
+import { MAX_UPLOAD_BYTES, MAX_UPLOAD_LABEL } from '@/app/lib/uploadLimits';
 
-// Route segment config - 設定檔案上傳限制
+// Route segment config
 export const runtime = 'nodejs';
-export const maxDuration = 30; // 30 秒超時
+export const maxDuration = 30;
 export const dynamic = 'force-dynamic';
 
-// 允許的圖片類型
-const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+// 允許的圖片類型 → 固定的副檔名（不使用使用者提供的檔名副檔名）
+const TYPE_TO_EXTENSION: Record<string, string> = {
+  'image/jpeg': '.jpg',
+  'image/png': '.png',
+  'image/webp': '.webp',
+  'image/gif': '.gif',
+};
+const ALLOWED_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp', '.gif'];
 
-// 檢查是否在生產環境
-const isProduction = process.env.NODE_ENV === 'production';
-
-// 檢查 Vercel Blob 是否可用
-function isVercelBlobAvailable(): boolean {
-  const token = process.env.BLOB_READ_WRITE_TOKEN || process.env.VERCEL_BLOB_READ_WRITE_TOKEN;
-  console.log('Vercel Blob availability check:', {
-    hasToken: !!token,
-    tokenLength: token?.length || 0,
-    nodeEnv: process.env.NODE_ENV,
-    vercelEnv: process.env.VERCEL_ENV,
-    allBlobEnvVars: Object.keys(process.env).filter(key => key.includes('BLOB'))
-  });
-  return !!token;
+// 依檔頭 (magic bytes) 判斷實際的圖片格式；client 傳來的 file.type 可以偽造
+function detectImageType(bytes: Uint8Array): string | null {
+  if (bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return 'image/jpeg';
+  if (bytes.length >= 8 && bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47
+    && bytes[4] === 0x0d && bytes[5] === 0x0a && bytes[6] === 0x1a && bytes[7] === 0x0a) return 'image/png';
+  if (bytes.length >= 6 && String.fromCharCode(...bytes.slice(0, 6)).match(/^GIF8[79]a$/)) return 'image/gif';
+  if (bytes.length >= 12 && String.fromCharCode(...bytes.slice(0, 4)) === 'RIFF'
+    && String.fromCharCode(...bytes.slice(8, 12)) === 'WEBP') return 'image/webp';
+  return null;
 }
 
-// 上傳到 Vercel Blob (生產環境)
-async function uploadToVercelBlob(file: File, fileName: string) {
-  try {
-    console.log('Attempting Vercel Blob upload:', {
-      fileName,
-      fileSize: file.size,
-      fileType: file.type,
-      hasToken: isVercelBlobAvailable()
-    });
-    
-    // 檢查 token 是否可用
-    if (!isVercelBlobAvailable()) {
-      throw new Error('Vercel Blob token not configured');
-    }
-    
-    // 動態導入 Vercel Blob
-    const { put } = await import('@vercel/blob');
-    
-    // 嘗試上傳，不指定 token（讓 SDK 自動使用環境變數）
-    const blob = await put(fileName, file, {
-      access: 'public',
-      addRandomSuffix: false,
-    });
-    
-    console.log('Vercel Blob upload successful:', {
-      url: blob.url,
-      downloadUrl: blob.downloadUrl
-    });
-    
-    return blob.url;
-  } catch (error: any) {
-    console.error('Vercel Blob upload failed:', {
-      error: error.message,
-      stack: error.stack,
-      name: error.name
-    });
-    
-    // 提供更具體的錯誤訊息
-    if (error.message?.includes('No token found')) {
-      throw new Error('Vercel Blob token 未正確設定。請檢查 BLOB_READ_WRITE_TOKEN 環境變數。');
-    } else if (error.message?.includes('unauthorized')) {
-      throw new Error('Vercel Blob token 無效或已過期。請重新設定 token。');
-    } else {
-      throw new Error(`雲端儲存上傳失敗: ${error.message}`);
-    }
-  }
+function hasBlobToken(): boolean {
+  return !!(process.env.BLOB_READ_WRITE_TOKEN || process.env.VERCEL_BLOB_READ_WRITE_TOKEN);
+}
+
+// 上傳到 Vercel Blob
+async function uploadToVercelBlob(data: Buffer, fileName: string, contentType: string): Promise<string> {
+  const { put } = await import('@vercel/blob');
+  const blob = await put(fileName, data, {
+    access: 'public',
+    addRandomSuffix: false,
+    contentType,
+  });
+  return blob.url;
 }
 
 // 上傳到本地檔案系統 (開發環境)
-async function uploadToLocalFileSystem(file: File, fileName: string) {
-  try {
-    // 確保目錄存在
-    const uploadDir = path.join(process.cwd(), 'public', 'images', 'blog');
-    await mkdir(uploadDir, { recursive: true });
-    
-    // 轉換檔案為 Buffer
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-    
-    // 儲存檔案
-    const uploadPath = path.join(uploadDir, fileName);
-    await writeFile(uploadPath, buffer);
-    
-    return `/images/blog/${fileName}`;
-  } catch (error) {
-    console.error('Local file system upload failed:', error);
-    throw new Error('本地儲存上傳失敗');
-  }
+async function uploadToLocalFileSystem(data: Buffer, fileName: string): Promise<string> {
+  const uploadDir = path.join(process.cwd(), 'public', 'images', 'blog');
+  await mkdir(uploadDir, { recursive: true });
+  await writeFile(path.join(uploadDir, fileName), data);
+  return `/images/blog/${fileName}`;
 }
 
-// 智慧上傳：根據環境和可用性選擇最佳方案
-async function smartUpload(file: File, fileName: string): Promise<string> {
-  console.log('Smart upload starting:', {
-    isProduction,
-    blobAvailable: isVercelBlobAvailable(),
-    fileName,
-    fileSize: file.size
-  });
-
-  if (isProduction) {
-    if (isVercelBlobAvailable()) {
-      // 生產環境且 Vercel Blob 可用
-      try {
-        return await uploadToVercelBlob(file, fileName);
-      } catch (error: any) {
-        console.error('Vercel Blob failed in production:', error);
-        
-        // 如果是 token 問題，提供具體指導
-        if (error.message?.includes('token') || error.message?.includes('unauthorized')) {
-          throw new Error(`
-            Vercel Blob 配置問題：${error.message}
-            
-            請檢查以下步驟：
-            1. 確認在 Vercel 控制台已設定 BLOB_READ_WRITE_TOKEN
-            2. 重新部署專案以載入新的環境變數
-            3. 確認 token 沒有過期或被撤銷
-          `);
-        }
-        
-        throw error;
-      }
-    } else {
-      // 生產環境但 Vercel Blob 不可用
-      throw new Error(`
-        生產環境需要配置 Vercel Blob 儲存。
-        
-        請在 Vercel 控制台設定以下環境變數：
-        - BLOB_READ_WRITE_TOKEN
-        
-        然後重新部署專案。
-      `);
-    }
-  } else {
-    // 開發環境：使用本地檔案系統
-    console.log('Using local file system for development');
-    return await uploadToLocalFileSystem(file, fileName);
-  }
+function errorResponse(message: string, status: number) {
+  return NextResponse.json({ error: message }, { status, headers: getSecurityHeaders() });
 }
 
 export async function POST(request: NextRequest) {
   try {
-    // Rate limiting
-    const clientIP = getClientIP(request);
-    if (!checkRateLimit(`upload:${clientIP}`, 10, 15 * 60 * 1000)) {
-      return NextResponse.json(
-        { error: '上傳請求過於頻繁，請稍後再試' },
-        { status: 429, headers: getSecurityHeaders() }
-      );
+    if (!isAdminRequest(request)) return errorResponse('需要管理員權限', 401);
+    if (!checkRateLimit(`upload:${getClientIP(request)}`, 50, 15 * 60 * 1000)) {
+      return errorResponse('上傳請求過於頻繁，請稍後再試', 429);
     }
 
-    // 驗證認證
-    const authData = verifyRequestAuth(request);
-    if (!authData || authData.role !== 'administrator') {
-      return NextResponse.json(
-        { error: '需要管理員權限' },
-        { status: 401, headers: getSecurityHeaders() }
-      );
+    const contentLength = Number(request.headers.get('content-length') || 0);
+    if (contentLength > MAX_UPLOAD_BYTES + 64 * 1024) {
+      return errorResponse(`圖片檔案過大，請選擇小於 ${MAX_UPLOAD_LABEL} 的圖片`, 413);
     }
 
     const formData = await request.formData();
-    const file = formData.get('image') as File;
+    const file = formData.get('image');
+    if (!file || typeof file === 'string') return errorResponse('請選擇要上傳的圖片', 400);
 
-    if (!file) {
-      return NextResponse.json(
-        { error: '請選擇要上傳的圖片' },
-        { status: 400, headers: getSecurityHeaders() }
-      );
+    if (file.size > MAX_UPLOAD_BYTES) {
+      return errorResponse(`圖片檔案過大，請選擇小於 ${MAX_UPLOAD_LABEL} 的圖片`, 400);
     }
 
-    // 驗證檔案類型
-    if (!ALLOWED_TYPES.includes(file.type)) {
-      return NextResponse.json(
-        { error: '不支援的圖片格式，請使用 JPG、PNG、WebP 或 GIF' },
-        { status: 400, headers: getSecurityHeaders() }
-      );
+    const originalExtension = path.extname(file.name || '').toLowerCase();
+    if (!ALLOWED_EXTENSIONS.includes(originalExtension)) {
+      return errorResponse('不支援的副檔名，請使用 .jpg、.png、.webp 或 .gif', 400);
     }
 
-    // 驗證檔案大小
-    if (file.size > MAX_FILE_SIZE) {
-      return NextResponse.json(
-        { error: '圖片檔案過大，請選擇小於 5MB 的圖片' },
-        { status: 400, headers: getSecurityHeaders() }
-      );
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const detectedType = detectImageType(new Uint8Array(buffer.subarray(0, 16)));
+    if (!detectedType || !TYPE_TO_EXTENSION[detectedType]) {
+      return errorResponse('檔案內容不是有效的 JPG、PNG、WebP 或 GIF 圖片', 400);
     }
 
-    // 生成安全的檔案名稱
-    const timestamp = Date.now();
-    const randomString = Math.random().toString(36).substring(2, 8);
-    const fileExtension = path.extname(file.name).toLowerCase();
-    const safeFileName = `blog-cover-${timestamp}-${randomString}${fileExtension}`;
+    const safeFileName = `blog-cover-${Date.now()}-${Math.random().toString(36).substring(2, 8)}${TYPE_TO_EXTENSION[detectedType]}`;
 
-    // 根據環境和可用性智慧選擇上傳方式
     let imageUrl: string;
-    
-    try {
-      imageUrl = await smartUpload(file, safeFileName);
-    } catch (error: any) {
-      console.error('Smart upload failed:', error);
-      return NextResponse.json(
-        { error: error.message || '圖片上傳失敗，請稍後再試' },
-        { status: 500, headers: getSecurityHeaders() }
-      );
+    if (process.env.NODE_ENV === 'production') {
+      // 正式環境：使用 Vercel Blob
+      if (!hasBlobToken()) {
+        return errorResponse('伺服器尚未設定圖片儲存空間（BLOB_READ_WRITE_TOKEN），請聯絡管理員', 500);
+      }
+      imageUrl = await uploadToVercelBlob(buffer, safeFileName, detectedType);
+    } else {
+      // 開發環境：寫入 public/images/blog
+      imageUrl = await uploadToLocalFileSystem(buffer, safeFileName);
     }
 
     return NextResponse.json(
@@ -217,18 +106,13 @@ export async function POST(request: NextRequest) {
         success: true,
         imageUrl,
         fileName: safeFileName,
-        originalName: file.name,
         size: file.size,
-        type: file.type
+        type: detectedType,
       },
       { headers: getSecurityHeaders() }
     );
-
   } catch (error) {
     console.error('Error uploading image:', error);
-    return NextResponse.json(
-      { error: '圖片上傳失敗，請稍後再試' },
-      { status: 500, headers: getSecurityHeaders() }
-    );
+    return errorResponse('圖片上傳失敗，請稍後再試', 500);
   }
 }

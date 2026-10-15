@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyPassword, generateToken, checkRateLimit, getClientIP, getSecurityHeaders } from '@/app/lib/security';
+import { verifyPassword, generateToken, verifyToken, checkRateLimit, getClientIP, getSecurityHeaders } from '@/app/lib/security';
 
 export async function POST(request: NextRequest) {
   try {
@@ -68,17 +68,20 @@ export async function POST(request: NextRequest) {
           role: 'administrator',
           loginTime: new Date().toISOString(),
         },
-        token,
       },
       { headers: getSecurityHeaders() }
     );
 
-    // 設定 HttpOnly cookie
+    // cookie 有效期限與 JWT 的 exp 一致（JWT_EXPIRES_IN）
+    const decoded = verifyToken(token);
+    const maxAge = decoded?.exp ? Math.max(decoded.exp - Math.floor(Date.now() / 1000), 0) : 24 * 60 * 60;
+
+    // 設定 HttpOnly cookie（token 只放在 HttpOnly cookie，不放在回應內容中）
     response.cookies.set('auth-token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax', // 改為 lax 以支援 Vercel 的不同部署域名
-      maxAge: 24 * 60 * 60, // 24 hours
+      maxAge,
       path: '/',
     });
 

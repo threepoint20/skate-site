@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
+import { MAX_UPLOAD_BYTES, MAX_UPLOAD_LABEL } from '../lib/uploadLimits';
 
 interface ImageUploadProps {
   currentImage?: string;
@@ -23,9 +24,9 @@ export default function ImageUpload({ currentImage, onImageUploaded, onImageRemo
       return;
     }
 
-    // 驗證檔案大小 (5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      alert('圖片檔案過大，請選擇小於 5MB 的圖片');
+    // 驗證檔案大小
+    if (file.size > MAX_UPLOAD_BYTES) {
+      alert(`圖片檔案過大，請選擇小於 ${MAX_UPLOAD_LABEL} 的圖片`);
       return;
     }
 
@@ -45,7 +46,7 @@ export default function ImageUpload({ currentImage, onImageUploaded, onImageRemo
         const result = await response.json();
         onImageUploaded(result.imageUrl);
       } else {
-        const error = await response.json();
+        const error = await response.json().catch(() => ({ error: `HTTP ${response.status}` }));
         alert(`上傳失敗: ${error.error}`);
       }
     } catch (error) {
@@ -151,7 +152,7 @@ export default function ImageUpload({ currentImage, onImageUploaded, onImageRemo
               <span className="text-gray-500"> 或拖拽圖片到此處</span>
             </div>
             <p className="text-xs text-gray-500">
-              支援 JPG、PNG、WebP、GIF，最大 5MB
+              支援 JPG、PNG、WebP、GIF，最大 {MAX_UPLOAD_LABEL}
             </p>
           </div>
         )}
@@ -160,7 +161,7 @@ export default function ImageUpload({ currentImage, onImageUploaded, onImageRemo
       <input
         ref={fileInputRef}
         type="file"
-        accept="image/*"
+        accept=".jpg,.jpeg,.png,.webp,.gif,image/jpeg,image/png,image/webp,image/gif"
         onChange={handleFileInputChange}
         className="hidden"
       />
