@@ -1,0 +1,35 @@
+[
+  {
+    "id": "activity-1",
+    "name": "活動照片 1",
+    "description": "滑板活動現場照片",
+    "url": "/activity1.png",
+    "category": "activity",
+    "alt": "活動照片 1",
+    "order": 1,
+    "createdAt": "2026-07-25T05:21:55.934Z",
+    "updatedAt": "2026-07-25T05:21:55.934Z"
+  },
+  {
+    "id": "activity-2",
+    "name": "活動照片 2",
+    "description": "滑板活動現場照片",
+    "url": "/activity2.png",
+    "category": "activity",
+    "alt": "活動照片 2",
+    "order": 2,
+    "createdAt": "2026-07-25T05:21:55.934Z",
+    "updatedAt": "2026-07-25T05:21:55.934Z"
+  },
+  {
+    "id": "activity-3",
+    "name": "活動照片 3",
+    "description": "滑板活動現場照片",
+    "url": "/activity3.png",
+    "category": "activity",
+    "alt": "活動照片 3",
+    "order": 3,
+    "createdAt": "2026-07-25T05:21:55.934Z",
+    "updatedAt": "2026-07-25T05:21:55.934Z"
+  }
+]

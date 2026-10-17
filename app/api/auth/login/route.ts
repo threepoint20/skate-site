@@ -26,6 +26,14 @@ export async function POST(request: NextRequest) {
     const adminUsername = process.env.ADMIN_USERNAME || 'admin';
     const adminPasswordHash = process.env.ADMIN_PASSWORD_HASH;
 
+    console.log('Login debug:', {
+      receivedUsername: username,
+      expectedUsername: adminUsername,
+      hasHash: !!adminPasswordHash,
+      hashLength: adminPasswordHash?.length,
+      hashPrefix: adminPasswordHash?.slice(0, 7),
+    });
+
     if (!adminPasswordHash) {
       console.error('ADMIN_PASSWORD_HASH not configured');
       return NextResponse.json(

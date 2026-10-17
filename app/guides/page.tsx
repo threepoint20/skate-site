@@ -1,33 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { getImagesByCategory, SiteImage } from '../lib/imageManager';
 import PageHero from '../components/PageHero';
 import Breadcrumb from '../components/Breadcrumb';
 import { generateBreadcrumbs } from '../lib/breadcrumbs';
 
 export default function Guides() {
-  const [generalImages, setGeneralImages] = useState<SiteImage[]>([]);
   const breadcrumbs = generateBreadcrumbs('/guides');
-
-  useEffect(() => {
-    const loadImages = async () => {
-      try {
-        const images = await getImagesByCategory('general');
-        setGeneralImages(images);
-      } catch (error) {
-        console.error('Error loading general images:', error);
-        setGeneralImages([]);
-      }
-    };
-
-    loadImages();
-  }, []);
-
-  // 取得特定用途的圖片
-  const getImageByName = (name: string) => {
-    return generalImages.find(img => img.name.toLowerCase().includes(name.toLowerCase()));
-  };
   
   return (
     <main className="min-h-screen bg-background text-foreground">

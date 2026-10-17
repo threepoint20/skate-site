@@ -1,4 +1,4 @@
-// 資料庫適配器 - 支援本地檔案系統、Vercel KV 和 Neon PostgreSQL
+// 資料庫適配器 - 支援本地檔案系統與 Neon PostgreSQL
 import { BlogPost } from './blogData';
 import { SiteImage } from './imageManager';
 import fs from 'fs';
@@ -6,19 +6,15 @@ import path from 'path';
 import type { NeonHttpDatabase } from 'drizzle-orm/neon-http';
 import { blogPosts, siteImages } from './schema';
 
-// 檢查是否在生產環境
-const isProduction = process.env.NODE_ENV === 'production';
-
 // 本地檔案路徑
 const DATA_FILE = path.join(process.cwd(), 'data', 'blog-posts.json');
 const IMAGES_FILE = path.join(process.cwd(), 'data', 'site-images.json');
 
-type DatabaseType = 'file' | 'kv' | 'neon';
+type DatabaseType = 'file' | 'neon';
 
 // 資料庫類型檢測
 const getDatabaseType = (): DatabaseType => {
   if (process.env.DATABASE_URL) return 'neon';
-  if (isProduction && process.env.KV_REST_API_URL) return 'kv';
   return 'file';
 };
 
@@ -29,45 +25,16 @@ function assertWritableFileStore() {
   }
 }
 
-interface KvClient {
-  get<T>(key: string): Promise<T | null>;
-  set(key: string, value: unknown): Promise<unknown>;
-}
-
 // Neon 資料庫客戶端
 let neonDb: NeonHttpDatabase | null = null;
 
-// Vercel KV 客戶端（@vercel/kv 已被 Vercel 標示為淘汰，僅保留作為備援）
-let kv: KvClient | null = null;
-const KV_KEY = 'blog-posts';
-
-// 初始化資料庫連接
-async function initDatabase() {
-  const dbType = getDatabaseType();
-
-  if (dbType === 'neon' && !neonDb) {
+async function getNeon(): Promise<NeonHttpDatabase> {
+  if (!neonDb) {
     const { neon } = await import('@neondatabase/serverless');
     const { drizzle } = await import('drizzle-orm/neon-http');
     neonDb = drizzle(neon(process.env.DATABASE_URL!));
-  } else if (dbType === 'kv' && !kv) {
-    try {
-      kv = (await import('@vercel/kv')).kv as unknown as KvClient;
-    } catch (error) {
-      console.warn('⚠️ Vercel KV not available', error);
-    }
   }
-}
-
-async function getNeon(): Promise<NeonHttpDatabase> {
-  await initDatabase();
-  if (!neonDb) throw new Error('Neon database not initialised');
   return neonDb;
-}
-
-async function getKv(): Promise<KvClient> {
-  await initDatabase();
-  if (!kv) throw new Error('Vercel KV not available');
-  return kv;
 }
 
 // 確保本地資料目錄存在
@@ -131,16 +98,11 @@ function readPostsFile(): BlogPost[] {
 // 讀取所有文章
 export async function getAllPostsFromDB(): Promise<BlogPost[]> {
   try {
-    const dbType = getDatabaseType();
-
-    if (dbType === 'neon') {
+    if (getDatabaseType() === 'neon') {
       const db = await getNeon();
       const { desc } = await import('drizzle-orm');
       const posts = await db.select().from(blogPosts).orderBy(desc(blogPosts.id));
       return posts.map(convertNeonToBlogPost);
-    } else if (dbType === 'kv') {
-      const client = await getKv();
-      return (await client.get<BlogPost[]>(KV_KEY)) || [];
     }
     return readPostsFile();
   } catch (error) {
@@ -155,14 +117,8 @@ export async function getPublishedPostsFromDB(): Promise<BlogPost[]> {
   return posts.filter(post => post.status === '已發布');
 }
 
-// 儲存所有文章（僅 KV / 檔案模式使用）
+// 儲存所有文章（僅檔案模式使用）
 async function savePostsToDB(posts: BlogPost[]): Promise<boolean> {
-  const dbType = getDatabaseType();
-  if (dbType === 'kv') {
-    const client = await getKv();
-    await client.set(KV_KEY, posts);
-    return true;
-  }
   assertWritableFileStore();
   ensureDataDirectory();
   fs.writeFileSync(DATA_FILE, JSON.stringify(posts, null, 2), 'utf8');
@@ -307,7 +263,7 @@ function convertNeonToSiteImage(row: NeonImageRow): SiteImage {
     url: row.url,
     category: row.category as SiteImage['category'],
     alt: row.alt,
-    order: row.order || 0,
+    order: row.alt ? (row.order || 0) : 0,
     createdAt: toIso(row.createdAt) || new Date().toISOString(),
     updatedAt: toIso(row.updatedAt) || new Date().toISOString(),
   };
@@ -332,25 +288,16 @@ function readImagesFile(): SiteImage[] {
 
 // 讀取所有圖片（失敗時拋出錯誤，由 API 決定回應）
 export async function getAllImagesFromDB(): Promise<SiteImage[]> {
-  const dbType = getDatabaseType();
-  if (dbType === 'neon') {
+  if (getDatabaseType() === 'neon') {
     const db = await getNeon();
     const { desc } = await import('drizzle-orm');
     const images = await db.select().from(siteImages).orderBy(desc(siteImages.id));
     return images.map(convertNeonToSiteImage);
-  } else if (dbType === 'kv') {
-    const client = await getKv();
-    return (await client.get<SiteImage[]>('site-images')) || [];
   }
   return readImagesFile();
 }
 
 async function saveImagesToDB(images: SiteImage[]): Promise<boolean> {
-  if (getDatabaseType() === 'kv') {
-    const client = await getKv();
-    await client.set('site-images', images);
-    return true;
-  }
   assertWritableFileStore();
   ensureDataDirectory();
   fs.writeFileSync(IMAGES_FILE, JSON.stringify(images, null, 2), 'utf8');

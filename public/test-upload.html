@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>圖片上傳測試</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .upload-area {
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .upload-area.dragover {
+            border-color: #007bff;
+            background-color: #f8f9fa;
+        }
+        .btn {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .btn:hover {
+            background-color: #0056b3;
+        }
+        .result {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 4px;
+            white-space: pre-wrap;
+        }
+        .success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .info {
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+    </style>
+</head>
+<body>
+    <h1>圖片上傳測試工具</h1>
+    <p>這個工具用來測試和診斷圖片上傳的 413 錯誤問題。</p>
+
+    <div class="upload-area" id="uploadArea">
+        <p>拖拽圖片到此處或點擊選擇檔案</p>
+        <input type="file" id="fileInput" accept="image/*" style="display: none;">
+        <button class="btn" onclick="document.getElementById('fileInput').click()">選擇圖片</button>
+    </div>
+
+    <div>
+        <button class="btn" onclick="testDebugEndpoint()">測試 Debug 端點</button>
+        <button class="btn" onclick="testUploadEndpoint()">測試上傳端點</button>
+        <button class="btn" onclick="clearResults()">清除結果</button>
+    </div>
+
+    <div id="results"></div>
+
+    <script>
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const results = document.getElementById('results');
+        let selectedFile = null;
+
+        // 拖拽功能
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file) {
+                handleFileSelect(file);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                handleFileSelect(file);
+            }
+        });
+
+        function handleFileSelect(file) {
+            selectedFile = file;
+            addResult('info', `已選擇檔案: ${file.name}
+大小: ${(file.size / 1024 / 1024).toFixed(2)} MB
+類型: ${file.type}
+最後修改: ${new Date(file.lastModified).toLocaleString()}`);
+        }
+
+        function addResult(type, message) {
+            const div = document.createElement('div');
+            div.className = `result ${type}`;
+            div.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            results.appendChild(div);
+            results.scrollTop = results.scrollHeight;
+        }
+
+        function clearResults() {
+            results.innerHTML = '';
+        }
+
+        async function testDebugEndpoint() {
+            if (!selectedFile) {
+                addResult('error', '請先選擇一個圖片檔案');
+                return;
+            }
+
+            try {
+                addResult('info', '測試 Debug 端點...');
+                
+                const formData = new FormData();
+                formData.append('image', selectedFile);
+
+                const response = await fetch('/api/debug/upload-test', {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                const result = await response.json();
+                
+                if (response.ok) {
+                    addResult('success', `Debug 測試成功:
+狀態: ${response.status}
+結果: ${JSON.stringify(result, null, 2)}`);
+                } else {
+                    addResult('error', `Debug 測試失敗:
+狀態: ${response.status}
+錯誤: ${JSON.stringify(result, null, 2)}`);
+                }
+            } catch (error) {
+                addResult('error', `Debug 測試異常: ${error.message}`);
+            }
+        }
+
+        async function testUploadEndpoint() {
+            if (!selectedFile) {
+                addResult('error', '請先選擇一個圖片檔案');
+                return;
+            }
+
+            try {
+                addResult('info', '測試上傳端點...');
+                
+                const formData = new FormData();
+                formData.append('image', selectedFile);
+
+                const response = await fetch('/api/upload/image', {
+                    method: 'POST',
+                    credentials: 'include',
+                    body: formData,
+                });
+
+                const result = await response.json();
+                
+                if (response.ok) {
+                    addResult('success', `上傳測試成功:
+狀態: ${response.status}
+結果: ${JSON.stringify(result, null, 2)}`);
+                } else {
+                    addResult('error', `上傳測試失敗:
+狀態: ${response.status} (${response.statusText})
+錯誤: ${JSON.stringify(result, null, 2)}`);
+                    
+                    if (response.status === 413) {
+                        addResult('error', `413 錯誤分析:
+- Request Entity Too Large
+- 檔案大小: ${(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+- 伺服器限制: 5 MB
+- 可能原因: Next.js body parser 限制、Vercel 函數限制、網路問題`);
+                    }
+                }
+            } catch (error) {
+                addResult('error', `上傳測試異常: ${error.message}`);
+            }
+        }
+
+        // 頁面載入時顯示說明
+        addResult('info', '頁面已載入，請選擇圖片檔案開始測試');
+    </script>
+</body>
+</html>

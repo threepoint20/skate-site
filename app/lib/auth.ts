@@ -99,6 +99,7 @@ export function hasPermission(user: User | null, action: string): boolean {
       return isAdmin(user); // 只有管理員可以管理文章
     
     case 'access_admin':
+    case 'edit_content': // 加入編輯內容（聯絡我們頁面）的權限
       return isAdmin(user); // 只有管理員可以訪問管理功能
     
     default:

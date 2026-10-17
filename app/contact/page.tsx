@@ -4,6 +4,7 @@ import { useState } from 'react';
 import PageHero from '../components/PageHero';
 import Breadcrumb from '../components/Breadcrumb';
 import { generateBreadcrumbs } from '../lib/breadcrumbs';
+import ProtectedRoute from '../components/ProtectedRoute';
 
 export default function Contact() {
   const breadcrumbs = generateBreadcrumbs('/contact');
@@ -11,7 +12,8 @@ export default function Contact() {
   const [showNotice, setShowNotice] = useState(false);
 
   return (
-    <main className="min-h-screen bg-background text-foreground">
+    <ProtectedRoute requiredPermission="edit_content">
+      <main className="min-h-screen bg-background text-foreground">
       {/* Hero Section */}
       <PageHero
         title="聯絡我們"
@@ -27,8 +29,8 @@ export default function Contact() {
 
       {/* Contact Form & Info */}
       <section className="px-6 py-24">
-        <div className="max-w-6xl mx-auto">
-          <div className="grid md:grid-cols-2 gap-12">
+        <div className="max-w-3xl mx-auto">
+          <div>
             {/* Contact Form */}
             <div className="bg-white p-8 rounded-lg shadow-md">
               <h2 className="text-3xl font-bold mb-6 text-black">發送訊息</h2>
@@ -132,7 +134,8 @@ export default function Contact() {
               </form>
             </div>
 
-            {/* Contact Information */}
+            {/* Contact Information (Temporarily Hidden) */}
+            {/* 
             <div className="space-y-8">
               <div>
                 <h2 className="text-3xl font-bold mb-6">聯絡資訊</h2>
@@ -143,8 +146,8 @@ export default function Contact() {
                     </div>
                     <div>
                       <h3 className="font-semibold text-lg">地址</h3>
-                      <p className="text-gray-600">台北市信義區滑板街123號</p>
-                      <p className="text-gray-600">SkateInfo 滑板資訊中心</p>
+                      <p className="text-gray-600">{SITE_CONTACT.fullAddress}</p>
+                      <p className="text-gray-600">{SITE_CONTACT.centerName}</p>
                     </div>
                   </div>
                   
@@ -154,8 +157,8 @@ export default function Contact() {
                     </div>
                     <div>
                       <h3 className="font-semibold text-lg">電話</h3>
-                      <p className="text-gray-600">+886-912-345-678</p>
-                      <p className="text-sm text-gray-500">週一至週五 9:00-18:00</p>
+                      <p className="text-gray-600">{SITE_CONTACT.phone}</p>
+                      <p className="text-sm text-gray-500">{SITE_CONTACT.phoneHours}</p>
                     </div>
                   </div>
                   
@@ -165,7 +168,7 @@ export default function Contact() {
                     </div>
                     <div>
                       <h3 className="font-semibold text-lg">電子郵件</h3>
-                      <p className="text-gray-600">info@skateinfo.com</p>
+                      <p className="text-gray-600">{SITE_CONTACT.email}</p>
                       <p className="text-sm text-gray-500">24小時內回覆</p>
                     </div>
                   </div>
@@ -176,14 +179,13 @@ export default function Contact() {
                     </div>
                     <div>
                       <h3 className="font-semibold text-lg">營業時間</h3>
-                      <p className="text-gray-600">週一至週五：9:00 - 21:00</p>
-                      <p className="text-gray-600">週六至週日：10:00 - 22:00</p>
+                      <p className="text-gray-600">{SITE_CONTACT.weekdayHours}</p>
+                      <p className="text-gray-600">{SITE_CONTACT.weekendHours}</p>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Social Media */}
               <div>
                 <h3 className="text-xl font-semibold mb-4">追蹤我們</h3>
                 <div className="flex space-x-4">
@@ -202,6 +204,7 @@ export default function Contact() {
                 </div>
               </div>
             </div>
+            */}
           </div>
         </div>
       </section>
@@ -252,5 +255,6 @@ export default function Contact() {
         </div>
       </section>
     </main>
+    </ProtectedRoute>
   );
 }

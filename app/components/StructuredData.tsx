@@ -1,7 +1,6 @@
-import { getSiteUrl, jsonLd, SITE_NAME } from '../lib/site';
+import { getSiteUrl, jsonLd, SITE_NAME, SITE_CONTACT } from '../lib/site';
 
 // 全站 Organization 結構化資料
-// 注意：目前 public/ 沒有網站 logo，因此不輸出 logo 欄位；有正式 logo 後可加入 "logo"
 export default function StructuredData() {
   const baseUrl = getSiteUrl();
 
@@ -13,14 +12,15 @@ export default function StructuredData() {
     "url": baseUrl,
     "contactPoint": {
       "@type": "ContactPoint",
-      "telephone": "+886-912-345-678",
+      "telephone": SITE_CONTACT.phone,
+      "email": SITE_CONTACT.email,
       "contactType": "customer service",
       "availableLanguage": ["zh-TW"]
     },
     "address": {
       "@type": "PostalAddress",
-      "streetAddress": "信義區滑板街123號",
-      "addressLocality": "台北市",
+      "streetAddress": SITE_CONTACT.streetAddress,
+      "addressLocality": SITE_CONTACT.city,
       "addressCountry": "TW"
     }
   };
