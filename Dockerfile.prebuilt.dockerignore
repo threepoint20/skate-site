@@ -1,0 +1,6 @@
+# Dockerfile.prebuilt 只需要打包產物，其餘全部排除
+*
+!.next/standalone
+!.next/static
+!public
+!data

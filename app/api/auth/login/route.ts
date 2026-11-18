@@ -26,14 +26,6 @@ export async function POST(request: NextRequest) {
     const adminUsername = process.env.ADMIN_USERNAME || 'admin';
     const adminPasswordHash = process.env.ADMIN_PASSWORD_HASH;
 
-    console.log('Login debug:', {
-      receivedUsername: username,
-      expectedUsername: adminUsername,
-      hasHash: !!adminPasswordHash,
-      hashLength: adminPasswordHash?.length,
-      hashPrefix: adminPasswordHash?.slice(0, 7),
-    });
-
     if (!adminPasswordHash) {
       console.error('ADMIN_PASSWORD_HASH not configured');
       return NextResponse.json(
@@ -85,9 +77,15 @@ export async function POST(request: NextRequest) {
     const maxAge = decoded?.exp ? Math.max(decoded.exp - Math.floor(Date.now() / 1000), 0) : 24 * 60 * 60;
 
     // 設定 HttpOnly cookie（token 只放在 HttpOnly cookie，不放在回應內容中）
+    // secure 預設在 production 開啟；若透過 HTTP 提供服務（如 NAS 區網 http://ip:3000）
+    // 需設 COOKIE_SECURE=false，否則瀏覽器會拒收 cookie 導致無法登入
+    const secureCookie = process.env.COOKIE_SECURE
+      ? process.env.COOKIE_SECURE === 'true'
+      : process.env.NODE_ENV === 'production';
+
     response.cookies.set('auth-token', token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: secureCookie,
       sameSite: 'lax', // 改為 lax 以支援 Vercel 的不同部署域名
       maxAge,
       path: '/',

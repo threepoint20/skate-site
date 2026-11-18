@@ -33,6 +33,15 @@ function hasBlobToken(): boolean {
   return !!(process.env.BLOB_READ_WRITE_TOKEN || process.env.VERCEL_BLOB_READ_WRITE_TOKEN);
 }
 
+// 圖片儲存方式：STORAGE_DRIVER 可強制指定 'blob' 或 'local'；
+// 未設定時自動偵測（有 Blob token 用 Vercel Blob，否則寫本地檔案系統，適合 NAS / 自架部署）
+function getStorageDriver(): 'blob' | 'local' {
+  const driver = process.env.STORAGE_DRIVER;
+  if (driver === 'blob') return 'blob';
+  if (driver === 'local') return 'local';
+  return hasBlobToken() ? 'blob' : 'local';
+}
+
 // 上傳到 Vercel Blob
 async function uploadToVercelBlob(data: Buffer, fileName: string, contentType: string): Promise<string> {
   const { put } = await import('@vercel/blob');
@@ -90,14 +99,13 @@ export async function POST(request: NextRequest) {
     const safeFileName = `blog-cover-${Date.now()}-${Math.random().toString(36).substring(2, 8)}${TYPE_TO_EXTENSION[detectedType]}`;
 
     let imageUrl: string;
-    if (process.env.NODE_ENV === 'production') {
-      // 正式環境：使用 Vercel Blob
-      if (!hasBlobToken()) {
-        return errorResponse('伺服器尚未設定圖片儲存空間（BLOB_READ_WRITE_TOKEN），請聯絡管理員', 500);
-      }
+    if (getStorageDriver() === 'blob') {
       imageUrl = await uploadToVercelBlob(buffer, safeFileName, detectedType);
     } else {
-      // 開發環境：寫入 public/images/blog
+      // Vercel 檔案系統為唯讀，寫入本地一定會失敗
+      if (process.env.VERCEL) {
+        return errorResponse('伺服器尚未設定圖片儲存空間（BLOB_READ_WRITE_TOKEN），請聯絡管理員', 500);
+      }
       imageUrl = await uploadToLocalFileSystem(buffer, safeFileName);
     }
 

@@ -1,7 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyRequestAuth, getSecurityHeaders } from '@/app/lib/security';
 
+// 除錯 API：開發環境預設啟用；production 需明確設 ENABLE_DEBUG_API=true
+function debugApiDisabled(): boolean {
+  return process.env.NODE_ENV === 'production' && process.env.ENABLE_DEBUG_API !== 'true';
+}
+
 export async function GET(request: NextRequest) {
+  if (debugApiDisabled()) {
+    return NextResponse.json({ error: 'Not Found' }, { status: 404 });
+  }
   try {
     // 驗證管理員權限
     const authData = verifyRequestAuth(request);

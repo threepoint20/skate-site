@@ -1,0 +1,26 @@
+# 預建置映像：在開發機（Mac）先跑 `npm run build` 產生 .next/standalone，
+# NAS 上只做 COPY 打包，不需 npm ci / next build，適合低功耗 NAS CPU。
+#
+# 本專案依賴皆為純 JS（bcryptjs、jsonwebtoken、drizzle、jsdom），
+# 且未使用 next/image，不需要 sharp 原生模組，macOS 產出的 standalone 可跨平台執行。
+FROM node:20-alpine AS runner
+WORKDIR /app
+ENV NODE_ENV=production \
+    NEXT_TELEMETRY_DISABLED=1 \
+    PORT=3000 \
+    HOSTNAME=0.0.0.0
+
+RUN addgroup -S nodejs && adduser -S nextjs -G nodejs
+
+COPY .next/standalone ./
+COPY .next/static ./.next/static
+COPY public ./public
+# standalone 已包含 data/，這裡再複製一次確保種子資料存在
+COPY data ./data
+
+RUN mkdir -p /app/public/images/blog \
+  && chown -R nextjs:nodejs /app/data /app/public/images
+
+USER nextjs
+EXPOSE 3000
+CMD ["node", "server.js"]

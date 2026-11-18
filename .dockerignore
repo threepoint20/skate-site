@@ -1,0 +1,13 @@
+node_modules
+.next
+.git
+.vscode
+*.md
+!README.md
+.env
+.env.*
+!.env.example
+.DS_Store
+drizzle
+scripts
+npm-debug.log*

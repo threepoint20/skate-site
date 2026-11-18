@@ -5,8 +5,17 @@ export const runtime = 'nodejs';
 export const maxDuration = 30;
 export const dynamic = 'force-dynamic';
 
+// 除錯 API：開發環境預設啟用；production 需明確設 ENABLE_DEBUG_API=true
+//（此端點不需認證，production 環境務必保持關閉）
+function debugApiDisabled(): boolean {
+  return process.env.NODE_ENV === 'production' && process.env.ENABLE_DEBUG_API !== 'true';
+}
+
 // 測試用的上傳端點 - 不需要認證，僅用於診斷
 export async function POST(request: NextRequest) {
+  if (debugApiDisabled()) {
+    return NextResponse.json({ error: 'Not Found' }, { status: 404 });
+  }
   try {
     console.log('=== Upload Test Debug API Called ===');
     
@@ -125,6 +134,9 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET() {
+  if (debugApiDisabled()) {
+    return NextResponse.json({ error: 'Not Found' }, { status: 404 });
+  }
   return NextResponse.json({
     message: 'Upload test debug endpoint',
     usage: 'POST with FormData containing "image" field',

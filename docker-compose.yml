@@ -1,0 +1,38 @@
+services:
+  skate-site:
+    build:
+      context: .
+      # NAS 效能不足時改用預建置：先在 Mac 跑 npm run build，
+      # 再執行 DOCKERFILE=Dockerfile.prebuilt docker compose up -d --build
+      dockerfile: ${DOCKERFILE:-Dockerfile}
+    container_name: skate-site
+    ports:
+      - "3000:3000"
+    env_file:
+      # docker compose 會對 env_file 的值做變數插值，而 .env.local 內的
+      # bcrypt hash / JWT_SECRET 含有 $ 或 \$ 會被吃掉。請用下列指令產生：
+      #   sed 's/\\\$/$/g' .env.local | sed 's/\$/$$/g' > .env.docker
+      - .env.docker
+    volumes:
+      # 文章與圖片中繼資料（file 模式）；named volume 會以 image 內的 data/ 作為初始內容
+      - skate-data:/app/data
+      # 上傳的圖片檔案（STORAGE_DRIVER=local 時寫入此處）
+      - skate-uploads:/app/public/images/blog
+    restart: unless-stopped
+
+  # 可選：想用 PostgreSQL 取代 JSON 檔案儲存時，取消以下註解，
+  # 並把 DATABASE_URL 設為 postgresql://postgres:<密碼>@db:5432/skate
+  # db:
+  #   image: postgres:16-alpine
+  #   container_name: skate-site-db
+  #   environment:
+  #     POSTGRES_DB: skate
+  #     POSTGRES_PASSWORD: change-me
+  #   volumes:
+  #     - skate-db:/var/lib/postgresql/data
+  #   restart: unless-stopped
+
+volumes:
+  skate-data:
+  skate-uploads:
+  # skate-db:

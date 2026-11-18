@@ -312,6 +312,10 @@ interface User {
 3. 自動部署完成
 4. 資料檔案會一起部署
 
+### NAS / 自架部署 (Docker)
+支援 Synology Container Manager 或任何 Docker 主機，無需雲端服務。
+詳見 [NAS_DEPLOYMENT.md](NAS_DEPLOYMENT.md)：`docker compose up -d --build` 即可。
+
 ### 其他平台
 - **Netlify**: 支援 Next.js 部署
 - **Railway**: 支援 Node.js 應用
