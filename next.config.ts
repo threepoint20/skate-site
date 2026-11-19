@@ -17,6 +17,9 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   // 產生 standalone 輸出（.next/standalone），供 Docker / NAS 自架部署使用；Vercel 會忽略此設定
   output: 'standalone',
+  experimental: {
+    agentUpgrade: 'security',
+  },
   env: {
     NEXT_PUBLIC_SITE_URL: siteUrl,
   },
