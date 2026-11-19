@@ -1,23 +1,30 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import PageHero from '../components/PageHero';
 import Breadcrumb from '../components/Breadcrumb';
 import { generateBreadcrumbs } from '../lib/breadcrumbs';
 import ProtectedRoute from '../components/ProtectedRoute';
+import { getSiteContent, DEFAULT_CONTENT } from '../lib/siteContent';
 
 export default function Contact() {
   const breadcrumbs = generateBreadcrumbs('/contact');
+  const [content, setContent] = useState<Record<string, string>>(DEFAULT_CONTENT);
+  const t = (key: string) => content[key] ?? '';
   // 線上表單尚未串接寄信服務：不送出任何資料，並誠實告知使用者
   const [showNotice, setShowNotice] = useState(false);
+
+  useEffect(() => {
+    getSiteContent().then(setContent);
+  }, []);
 
   return (
     <ProtectedRoute requiredPermission="edit_content">
       <main className="min-h-screen bg-background text-foreground">
       {/* Hero Section */}
       <PageHero
-        title="聯絡我們"
-        subtitle="有任何問題或建議？我們很樂意聽到您的聲音"
+        title={t('contact.hero.title')}
+        subtitle={t('contact.hero.subtitle')}
         category="hero-contact"
         defaultGradient="from-purple-600 to-pink-600"
       />

@@ -129,7 +129,6 @@ export default function BlogClient({ initialPosts }: { initialPosts: BlogPost[] 
                       <span className="px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full">
                         {post.category}
                       </span>
-                      <span className="text-sm text-gray-500">{post.readTime}</span>
                     </div>
                     <h3 className="text-xl font-semibold mb-3 text-gray-900">
                       <Link 

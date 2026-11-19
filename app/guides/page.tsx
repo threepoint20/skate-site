@@ -1,18 +1,26 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import PageHero from '../components/PageHero';
 import Breadcrumb from '../components/Breadcrumb';
 import { generateBreadcrumbs } from '../lib/breadcrumbs';
+import { getSiteContent, DEFAULT_CONTENT } from '../lib/siteContent';
 
 export default function Guides() {
   const breadcrumbs = generateBreadcrumbs('/guides');
-  
+  const [content, setContent] = useState<Record<string, string>>(DEFAULT_CONTENT);
+  const t = (key: string) => content[key] ?? '';
+
+  useEffect(() => {
+    getSiteContent().then(setContent);
+  }, []);
+
   return (
     <main className="min-h-screen bg-background text-foreground">
       {/* Hero Section */}
       <PageHero
-        title="滑板指南"
-        subtitle="從基礎到進階，完整的滑板學習資源"
+        title={t('guides.hero.title')}
+        subtitle={t('guides.hero.subtitle')}
         category="hero-guides"
         defaultGradient="from-blue-600 to-purple-600"
       />

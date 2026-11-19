@@ -27,6 +27,19 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
   const [editedContent, setEditedContent] = useState('');
   const [editedTitle, setEditedTitle] = useState('');
   const [editedCoverImage, setEditedCoverImage] = useState('');
+  const [editedCategory, setEditedCategory] = useState('');
+  const [editedAuthor, setEditedAuthor] = useState('');
+  const [editedExcerpt, setEditedExcerpt] = useState('');
+  const [editedTags, setEditedTags] = useState('');
+
+  const categories = [
+    "初學者指南",
+    "技巧教學",
+    "裝備指南",
+    "安全指南",
+    "文化歷史",
+    "場地介紹"
+  ];
   const [loading, setLoading] = useState(true);
   const { hasPermission, loading: authLoading } = useAuth();
   const [relatedPosts, setRelatedPosts] = useState<BlogPost[]>([]);
@@ -44,6 +57,10 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
         setEditedContent(foundPost.content);
         setEditedTitle(foundPost.title);
         setEditedCoverImage(foundPost.coverImage || '');
+        setEditedCategory(foundPost.category);
+        setEditedAuthor(foundPost.author);
+        setEditedExcerpt(foundPost.excerpt);
+        setEditedTags(foundPost.tags?.join(', ') || '');
 
         // 增加瀏覽數（公開端點；草稿不會計數）
         const views = await incrementViews(slug);
@@ -89,7 +106,12 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
       const updated = await updatePost(post.slug, {
         title: editedTitle,
         content: editedContent,
-        coverImage: editedCoverImage
+        coverImage: editedCoverImage,
+        category: editedCategory,
+        author: editedAuthor || '匿名作者',
+        // 摘要留空時保留原值（不覆寫），與新增文章的「留空自動產生」行為等價
+        ...(editedExcerpt.trim() ? { excerpt: editedExcerpt } : {}),
+        tags: editedTags.split(',').map(tag => tag.trim()).filter(tag => tag),
       });
       setPost(updated);
       setIsEditing(false);
@@ -105,6 +127,10 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
       setEditedTitle(post.title);
       setEditedContent(post.content);
       setEditedCoverImage(post.coverImage || '');
+      setEditedCategory(post.category);
+      setEditedAuthor(post.author);
+      setEditedExcerpt(post.excerpt);
+      setEditedTags(post.tags?.join(', ') || '');
     }
     setIsEditing(false);
   };
@@ -185,20 +211,53 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
-            <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full">
-              {post.category}
-            </span>
-            {post.status === '草稿' && (
-              <span className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full">草稿（訪客看不到）</span>
-            )}
-            <span>作者：{post.author}</span>
-            <span>發布日期：{post.date}</span>
-            <span>閱讀時間：{post.readTime}</span>
-            <span>瀏覽數：{post.views}</span>
-          </div>
+          {isEditing ? (
+            <div className="grid md:grid-cols-2 gap-4 mt-4">
+              <div>
+                <label htmlFor="edit-category" className="block text-sm font-medium text-gray-700 mb-2">
+                  分類 *
+                </label>
+                <select
+                  id="edit-category"
+                  value={editedCategory}
+                  onChange={(e) => setEditedCategory(e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="">選擇分類</option>
+                  {categories.map(category => (
+                    <option key={category} value={category}>{category}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label htmlFor="edit-author" className="block text-sm font-medium text-gray-700 mb-2">
+                  作者
+                </label>
+                <input
+                  type="text"
+                  id="edit-author"
+                  value={editedAuthor}
+                  onChange={(e) => setEditedAuthor(e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="作者姓名"
+                />
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
+              <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full">
+                {post.category}
+              </span>
+              {post.status === '草稿' && (
+                <span className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full">草稿（訪客看不到）</span>
+              )}
+              <span>作者：{post.author}</span>
+              <span>發布日期：{post.date}</span>
+              <span>瀏覽數：{post.views}</span>
+            </div>
+          )}
 
-          {post.tags && post.tags.length > 0 && (
+          {!isEditing && post.tags && post.tags.length > 0 && (
             <div className="flex flex-wrap gap-2 mt-4">
               {post.tags.map((tag: string) => (
                 <span key={tag} className="px-2 py-1 bg-gray-200 text-gray-700 text-xs rounded">
@@ -243,16 +302,45 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
       <section className="px-6 py-12">
         <div className="max-w-4xl mx-auto">
           {isEditing ? (
-            <div className="space-y-4">
+            <div className="space-y-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  文章內容 (支援 Markdown)
+                <label htmlFor="edit-excerpt" className="block text-sm font-medium text-gray-700 mb-2">
+                  文章摘要
                 </label>
                 <textarea
+                  id="edit-excerpt"
+                  value={editedExcerpt}
+                  onChange={(e) => setEditedExcerpt(e.target.value)}
+                  rows={3}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="簡短描述文章內容..."
+                />
+              </div>
+              <div>
+                <label htmlFor="edit-tags" className="block text-sm font-medium text-gray-700 mb-2">
+                  標籤
+                </label>
+                <input
+                  type="text"
+                  id="edit-tags"
+                  value={editedTags}
+                  onChange={(e) => setEditedTags(e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="用逗號分隔，例：初學者, 基礎技巧, 安全"
+                />
+                <p className="text-sm text-gray-500 mt-1">用逗號分隔多個標籤</p>
+              </div>
+              <div>
+                <label htmlFor="edit-content" className="block text-sm font-medium text-gray-700 mb-2">
+                  文章內容 *（支援 Markdown）
+                </label>
+                <textarea
+                  id="edit-content"
                   value={editedContent}
                   onChange={(e) => setEditedContent(e.target.value)}
-                  className="w-full h-96 p-4 border rounded-lg font-mono text-sm"
-                  placeholder="在此輸入文章內容..."
+                  rows={20}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono"
+                  placeholder="在此輸入文章內容，支援 Markdown 語法..."
                 />
               </div>
               <div className="text-sm text-gray-500">
@@ -288,7 +376,6 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
                     </p>
                     <div className="flex justify-between items-center text-xs text-gray-500">
                       <span>{relatedPost.date}</span>
-                      <span>{relatedPost.readTime}</span>
                     </div>
                   </div>
                 </Link>

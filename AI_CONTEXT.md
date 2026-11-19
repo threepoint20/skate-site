@@ -69,6 +69,14 @@ DOCKERFILE=Dockerfile.prebuilt sudo docker compose up -d --build
 
 驗證過：lint 0 err、build OK、standalone server 啟動後登入/上傳/debug-404 皆正常。
 
+## 2026-11-18 session（頁面內容管理 + 雜項）
+
+- 新增**頁面文字 CMS**：`app/lib/siteContent.ts`（欄位註冊表 CONTENT_FIELDS + 預設值 + client fetch/cache）、`app/lib/contentStore.ts`（file `data/site-content.json` / Neon `site_content` 表 lazy 建表）、`app/api/content/route.ts`（GET 公開 / PUT 管理員，key 白名單）、`/admin/content` 後台頁
+- 五個頁面改用 `t('key')` 讀內容：home（hero/mission/區塊標題）、about（hero/story/價值觀×3/團隊×3）、guides/equipment/contact（僅 hero）
+- 要加新的可編輯文字 = CONTENT_FIELDS 加一筆 + 頁面換成 `t('key')`
+- 移除「閱讀時間」：/blog 卡片、文章頁、相關文章、首頁卡片、發文表單全部拿掉；DB schema 的 read_time notNull 保留（API 仍寫預設 '5 分鐘'）
+- 編輯文章模式補齊欄位對齊新增表單：分類、作者、摘要、標籤（`blog/[slug]/page.tsx`）
+
 ## 已知問題 / 可做但還沒做
 
 - `getSecurityHeaders()` 的 CSP 很弱（`script-src 'unsafe-inline'`）；`next.config.ts` 有另一組 headers

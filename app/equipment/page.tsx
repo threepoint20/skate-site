@@ -2,13 +2,16 @@
 
 import { useState, useEffect } from 'react';
 import { getImagesByCategory, SiteImage } from '../lib/imageManager';
+import { getSiteContent, DEFAULT_CONTENT } from '../lib/siteContent';
 import PageHero from '../components/PageHero';
 import Breadcrumb from '../components/Breadcrumb';
 import { generateBreadcrumbs } from '../lib/breadcrumbs';
 
 export default function Equipment() {
   const [equipmentImages, setEquipmentImages] = useState<SiteImage[]>([]);
+  const [content, setContent] = useState<Record<string, string>>(DEFAULT_CONTENT);
   const breadcrumbs = generateBreadcrumbs('/equipment');
+  const t = (key: string) => content[key] ?? '';
 
   useEffect(() => {
     const loadImages = async () => {
@@ -22,6 +25,7 @@ export default function Equipment() {
     };
 
     loadImages();
+    getSiteContent().then(setContent);
   }, []);
 
   // 取得特定用途的圖片
@@ -33,8 +37,8 @@ export default function Equipment() {
     <main className="min-h-screen bg-background text-foreground">
       {/* Hero Section */}
       <PageHero
-        title="滑板裝備"
-        subtitle="了解滑板的各個組件，選擇最適合你的裝備"
+        title={t('equipment.hero.title')}
+        subtitle={t('equipment.hero.subtitle')}
         category="hero-equipment"
         defaultGradient="from-orange-500 to-red-600"
       />

@@ -5,12 +5,15 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { getAllPosts, BlogPost } from './lib/blogData';
 import { getImagesByCategory, SiteImage } from './lib/imageManager';
+import { getSiteContent, DEFAULT_CONTENT } from './lib/siteContent';
 
 export default function Home() {
   const [latestPosts, setLatestPosts] = useState<BlogPost[]>([]);
   const [activityImages, setActivityImages] = useState<SiteImage[]>([]);
   const [heroImages, setHeroImages] = useState<SiteImage[]>([]);
+  const [content, setContent] = useState<Record<string, string>>(DEFAULT_CONTENT);
   const [loading, setLoading] = useState(true);
+  const t = (key: string) => content[key] ?? '';
 
   useEffect(() => {
     const loadContent = async () => {
@@ -31,6 +34,9 @@ export default function Home() {
         // 載入首頁橫幅圖片
         const heroImgs = await getImagesByCategory('hero');
         setHeroImages(heroImgs.slice(0, 1)); // 只取第一張作為背景
+
+        // 載入可編輯的頁面文字
+        setContent(await getSiteContent());
       } catch (error) {
         console.error('Error loading content:', error);
         // 如果載入失敗，顯示錯誤狀態
@@ -59,10 +65,10 @@ export default function Home() {
       >
         <div className={heroImages.length > 0 ? 'relative z-10' : ''}>
           <h1 className={`text-5xl md:text-7xl font-bold tracking-tight ${heroImages.length > 0 ? 'text-white' : ''}`}>
-            Skate like a Fairy/Superman
+            {t('home.hero.title')}
           </h1>
           <p className={`mt-6 text-lg md:text-xl max-w-2xl mx-auto ${heroImages.length > 0 ? 'text-gray-200' : 'text-gray-500'}`}>
-            推廣滑板文化、社群活動與教育，打造更友善、更包容的滑板環境。
+            {t('home.hero.subtitle')}
           </p>
 
           <div className="mt-10 flex justify-center gap-4">
@@ -93,18 +99,16 @@ export default function Home() {
       {/* Mission Section */}
       <section className="px-6 py-24 bg-gray-100 text-black">
         <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-4xl font-bold">我們的使命</h2>
+          <h2 className="text-4xl font-bold">{t('home.mission.title')}</h2>
           <p className="mt-6 text-lg text-gray-700 leading-relaxed">
-            我們相信滑板不只是運動，更是一種文化、一種力量。
-            透過課程、活動與社群，我們希望讓更多人能安全、自在地接觸滑板，
-            並在其中找到自信與歸屬感。
+            {t('home.mission.text')}
           </p>
         </div>
       </section>
 
       {/* Activity Photos Section */}
       <section className="px-6 py-24">
-        <h2 className="text-4xl font-bold text-center mb-10">活動照片</h2>
+        <h2 className="text-4xl font-bold text-center mb-10">{t('home.activity.title')}</h2>
 
         {activityImages.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
@@ -144,7 +148,7 @@ export default function Home() {
       {/* Blog Preview Section */}
       <section className="px-6 py-24 bg-gray-50 text-black">
         <div className="max-w-4xl mx-auto">
-          <h2 className="text-4xl font-bold text-center">最新文章</h2>
+          <h2 className="text-4xl font-bold text-center">{t('home.blog.title')}</h2>
 
           {loading ? (
             <div className="mt-10 text-center">
@@ -171,7 +175,6 @@ export default function Home() {
                       <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
                         {post.category}
                       </span>
-                      <span className="text-xs text-gray-500">{post.readTime}</span>
                     </div>
                     <h3 className="text-xl font-semibold mb-2 line-clamp-2">{post.title}</h3>
                     <p className="text-gray-600 text-sm line-clamp-3">{post.excerpt}</p>

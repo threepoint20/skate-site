@@ -25,7 +25,6 @@ function NewBlogPostContent() {
     category: '',
     author: '',
     tags: '',
-    readTime: '',
     coverImage: ''
   });
 
@@ -66,7 +65,7 @@ function NewBlogPostContent() {
         excerpt: formData.excerpt, // 留空時由伺服器自動產生純文字摘要
         category: formData.category,
         author: formData.author || '匿名作者',
-        readTime: formData.readTime || '5 分鐘',
+        readTime: '5 分鐘',
         tags: formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag),
         date: new Date().toISOString().split('T')[0],
         status,
@@ -101,7 +100,7 @@ function NewBlogPostContent() {
     title.textContent = formData.title;
     const meta = doc.createElement('div');
     meta.className = 'meta';
-    meta.textContent = `分類: ${formData.category} | 作者: ${formData.author} | 閱讀時間: ${formData.readTime}`;
+    meta.textContent = `分類: ${formData.category} | 作者: ${formData.author}`;
     const content = doc.createElement('div');
     content.innerHTML = renderMarkdown(formData.content);
     doc.body.append(title, meta, content);
@@ -142,7 +141,7 @@ function NewBlogPostContent() {
             </div>
 
             {/* Meta Information */}
-            <div className="grid md:grid-cols-3 gap-4">
+            <div className="grid md:grid-cols-2 gap-4">
               <div>
                 <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-2">
                   分類 *
@@ -174,21 +173,6 @@ function NewBlogPostContent() {
                   onChange={handleInputChange}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="作者姓名"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="readTime" className="block text-sm font-medium text-gray-700 mb-2">
-                  閱讀時間
-                </label>
-                <input
-                  type="text"
-                  id="readTime"
-                  name="readTime"
-                  value={formData.readTime}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="例：5 分鐘"
                 />
               </div>
             </div>

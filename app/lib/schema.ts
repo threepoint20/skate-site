@@ -34,6 +34,13 @@ export const siteImages = pgTable('site_images', {
   updatedAt: timestamp('updated_at').defaultNow(),
 });
 
+// 網站文字內容表（key-value，覆寫 siteContent.ts 註冊表中的預設值）
+export const siteContent = pgTable('site_content', {
+  key: text('key').primaryKey(),
+  value: text('value').notNull(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
 export type BlogPost = typeof blogPosts.$inferSelect;
 export type NewBlogPost = typeof blogPosts.$inferInsert;
 export type SiteImageDB = typeof siteImages.$inferSelect;
